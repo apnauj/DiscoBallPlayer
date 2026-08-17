@@ -1,4 +1,4 @@
-package com.juanpa.discoballplayer;
+package main.java.com.discoballplayer;
 
 public class Main {
     public static void main(String[] args) {
