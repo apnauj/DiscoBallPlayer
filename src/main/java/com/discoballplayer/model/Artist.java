@@ -8,14 +8,16 @@ public class Artist {
     private List<Song> songs;
     private String country;
     private String description;
+    private String picture;
 
 
-    public Artist(String name, int birth, List<Song> songs, String country, String description) {
+    public Artist(String name, int birth, List<Song> songs, String country, String description, String picture) {
         this.name = name;
         this.birth = birth;
         this.songs = songs;
         this.country = country;
         this.description = description;
+        this.picture = picture;
     }
 
     public String getName() {
@@ -56,5 +58,13 @@ public class Artist {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getPicture() {
+        return picture;
+    }
+
+    public void setPicture(String picture) {
+        this.picture = picture;
     }
 }
