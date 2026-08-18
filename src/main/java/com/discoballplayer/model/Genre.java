@@ -1,40 +1,30 @@
 package main.java.com.discoballplayer.model;
 
-import java.util.List;
+public enum Genre {
+    ROCK("Rock"),
+    POP("Pop"),
+    HIP_HOP("Hip Hop"),
+    REGGAETON("Reggaetón"),
+    SALSA("Salsa"),
+    ELECTRONIC("Electrónica"),
+    JAZZ("Jazz"),
+    CLASSICAL("Clásica"),
+    METAL("Metal"),
+    INDIE("Indie"),
+    OTHER("Otro");
 
-public class Genre {
-    private String name;
-    private String description;
-    private List<Song> songs;
+    private final String displayName;
 
-
-    public Genre(String name, String description, List<Song> songs) {
-        this.name = name;
-        this.description = description;
-        this.songs = songs;
+    Genre(String displayName) {
+        this.displayName = displayName;
     }
 
-    public String getName() {
-        return name;
+    public String getDisplayName() {
+        return displayName;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public List<Song> getSongs() {
-        return songs;
-    }
-
-    public void setSongs(List<Song> songs) {
-        this.songs = songs;
+    @Override
+    public String toString() {
+        return displayName;
     }
 }
