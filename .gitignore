@@ -10,9 +10,12 @@ target/
 .gradle/
 build/
 
-# Sistema operativo
+# Operating system
 .DS_Store
 Thumbs.db
 
 # Logs
 *.log
+
+# Claude Code (shared settings are committed, personal overrides are not)
+.claude/settings.local.json
