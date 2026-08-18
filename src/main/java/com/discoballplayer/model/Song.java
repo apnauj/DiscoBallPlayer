@@ -1,4 +1,4 @@
-package main.java.com.discoballplayer.model;
+package com.discoballplayer.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,7 +69,7 @@ public class Song implements Comparable<Song> {
 
     public String getArtistsNames() {
         if (artists.isEmpty()) {
-            return "Artista desconocido";
+            return "Unknown artist";
         }
         return artists.stream().map(Artist::getName).collect(Collectors.joining(", "));
     }
@@ -123,7 +123,7 @@ public class Song implements Comparable<Song> {
     public void setRating(int rating) {
         if (rating < MIN_RATING || rating > MAX_RATING) {
             throw new IllegalArgumentException(
-                    "The calification must be between " + MIN_RATING + " y " + MAX_RATING + ".");
+                    "The rating must be between " + MIN_RATING + " and " + MAX_RATING + ".");
         }
         this.rating = rating;
     }

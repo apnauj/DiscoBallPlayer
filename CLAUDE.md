@@ -16,8 +16,9 @@ how it works internally, and its time complexity for insertion, deletion, search
    branch names, PR titles and descriptions, README, and this file. No Spanish in the repo.
 2. **The three core data structures are implemented from scratch and are generic.**
    No `java.util.LinkedList`, `Queue`, `Deque`, `TreeMap`, `TreeSet`, or `Collections.sort`
-   inside `structures` or `playback`. `ArrayList` is allowed only in the UI layer and in
-   `MusicLibrary` as backing storage for the catalogue, never as a playback structure.
+   inside `structures` or `playback`. `ArrayList` is allowed only in the UI layer and in the
+   `model` package as backing storage for entity collections (the catalogue, a playlist's
+   songs, a song's artists), never as a playback structure.
 3. **The UI never touches a data structure directly.** It talks to `Player`, which talks to
    the `PlaybackMode` interface. If a UI class imports anything from `structures`, that is a bug.
 4. **No work happens on `main` or `develop` directly.** Every change arrives through a pull
@@ -59,6 +60,9 @@ DiscoBallPlayer
     │   │       ├── model
     │   │       │   ├── Song.java
     │   │       │   ├── Genre.java              (enum)
+    │   │       │   ├── Artist.java
+    │   │       │   ├── Album.java
+    │   │       │   ├── Playlist.java
     │   │       │   └── MusicLibrary.java
     │   │       ├── structures
     │   │       │   ├── DoublyCircularLinkedList.java
@@ -90,7 +94,8 @@ DiscoBallPlayer
     │       └── images/  default-cover.png
     └── test/java/com/discoballplayer
         ├── structures/
-        └── playback/
+        ├── playback/
+        └── service/
 ```
 
 Notes on the layout:
@@ -102,6 +107,12 @@ Notes on the layout:
   and JSON serialization fail at runtime with confusing reflection errors.
 - Audio files are **not** resources. The user picks MP3/WAV files from disk; `Song` stores
   the absolute path. Never copy audio into `src/main/resources`.
+- `Artist`, `Album` and `Playlist` are first-class model entities alongside `Song`. They exist
+  so the UI can filter by artist, album and user playlist without parsing free-text strings.
+  Identity for all of them is a generated `id`, which is why `equals`/`hashCode` compare only
+  that field.
+- Only non-empty packages can be exported from `module-info.java`. As `playback`, `service`
+  and `repository` gain their first class, add the matching `exports` line.
 
 ---
 
@@ -162,7 +173,11 @@ Ordered by song title. Navigation follows the in-order traversal, forward and ba
 Store a `parent` reference in each node and implement `inOrderSuccessor` / `inOrderPredecessor`
 in O(log n). **Do not flatten the traversal into a list and index into it** — that defeats the
 purpose of the exercise and is the first thing the professor will look for.
-Comparison key is `(title, artist)` so songs with duplicate titles are not swallowed by the tree.
+Ordering comes from `Song.compareTo`, which compares title case-insensitively and breaks ties
+on the generated `id`, so songs with duplicate titles are not swallowed by the tree. Note the
+tie-break is a random UUID: duplicate titles keep a stable order within a run, but not across
+runs. If the defense needs a reproducible order, change the tie-break to the artist name —
+that is a `model` change and belongs in its own PR.
 
 ---
 

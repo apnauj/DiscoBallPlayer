@@ -1,4 +1,4 @@
-package main.java.com.discoballplayer.structures;
+package com.discoballplayer.structures;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

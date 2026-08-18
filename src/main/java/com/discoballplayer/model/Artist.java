@@ -1,4 +1,4 @@
-package main.java.com.discoballplayer.model;
+package com.discoballplayer.model;
 
 import java.util.Objects;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package main.java.com.discoballplayer.model;
+package com.discoballplayer.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,11 +7,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Agrupación manual de canciones hecha por el usuario.
+ * A manual grouping of songs made by the user.
  *
- * A diferencia de Album/Artist/Genre, aquí la lista SÍ pertenece a la entidad:
- * una playlist no es más que su conjunto de canciones. Aun así se expone
- * inmutable y se modifica con métodos, no con un setSongs() público.
+ * <p>Unlike Album/Artist/Genre, here the list genuinely belongs to the entity: a
+ * playlist is nothing more than its set of songs. Even so it is exposed as immutable
+ * and modified through methods, not through a public {@code setSongs()}.</p>
  */
 public class Playlist {
 
