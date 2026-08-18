@@ -1,27 +1,39 @@
 package main.java.com.discoballplayer.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
+/**
+ * Agrupación manual de canciones hecha por el usuario.
+ *
+ * A diferencia de Album/Artist/Genre, aquí la lista SÍ pertenece a la entidad:
+ * una playlist no es más que su conjunto de canciones. Aun así se expone
+ * inmutable y se modifica con métodos, no con un setSongs() público.
+ */
 public class Playlist {
-    private String cover;
+
+    private final String id;
     private String name;
     private String description;
-    private List<Song> songs;
+    private String coverPath;
+    private final List<Song> songs = new ArrayList<>();
 
+    public Playlist(String name) {
+        this.id = UUID.randomUUID().toString();
+        setName(name);
+    }
 
-    public Playlist(String cover, String name, String description, List<Song> songs) {
-        this.cover = cover;
-        this.name = name;
+    public Playlist(String name, String description, String coverPath) {
+        this(name);
         this.description = description;
-        this.songs = songs;
+        this.coverPath = coverPath;
     }
 
-    public String getCover() {
-        return cover;
-    }
-
-    public void setCover(String cover) {
-        this.cover = cover;
+    public String getId() {
+        return id;
     }
 
     public String getName() {
@@ -29,7 +41,10 @@ public class Playlist {
     }
 
     public void setName(String name) {
-        this.name = name;
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("The name of the playlist can't be empty.");
+        }
+        this.name = name.trim();
     }
 
     public String getDescription() {
@@ -40,11 +55,60 @@ public class Playlist {
         this.description = description;
     }
 
-    public List<Song> getSongs() {
-        return songs;
+    public String getCoverPath() {
+        return coverPath;
     }
 
-    public void setSongs(List<Song> songs) {
-        this.songs = songs;
+    public void setCoverPath(String coverPath) {
+        this.coverPath = coverPath;
+    }
+
+    public List<Song> getSongs() {
+        return Collections.unmodifiableList(songs);
+    }
+
+    public boolean addSong(Song song) {
+        Objects.requireNonNull(song, "The song can't be null.");
+        if (songs.contains(song)) {
+            return false;
+        }
+        return songs.add(song);
+    }
+
+    public boolean removeSong(Song song) {
+        return songs.remove(song);
+    }
+
+    public boolean contains(Song song) {
+        return songs.contains(song);
+    }
+
+    public int size() {
+        return songs.size();
+    }
+
+    public int getTotalDurationSeconds() {
+        int total = 0;
+        for (Song song : songs) {
+            total += song.getDurationSeconds();
+        }
+        return total;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Playlist)) return false;
+        return id.equals(((Playlist) o).id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return name + " (" + songs.size() + ")";
     }
 }

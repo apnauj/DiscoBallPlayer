@@ -1,23 +1,33 @@
 package main.java.com.discoballplayer.model;
 
-import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
 
 public class Artist {
+
+    private final String id;
     private String name;
-    private int birth;
-    private List<Song> songs;
     private String country;
+    private int birthYear;
     private String description;
-    private String picture;
+    private String picturePath;
 
+    public Artist(String name) {
+        this.id = UUID.randomUUID().toString();
+        setName(name);
+    }
 
-    public Artist(String name, int birth, List<Song> songs, String country, String description, String picture) {
-        this.name = name;
-        this.birth = birth;
-        this.songs = songs;
+    public Artist(String name, String country, int birthYear, String description, String picturePath) {
+        this(name);
         this.country = country;
+        setBirthYear(birthYear);
         this.description = description;
-        this.picture = picture;
+        this.picturePath = picturePath;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getName() {
@@ -25,23 +35,10 @@ public class Artist {
     }
 
     public void setName(String name) {
-        this.name = name;
-    }
-
-    public int getBirth() {
-        return birth;
-    }
-
-    public void setBirth(int birth) {
-        this.birth = birth;
-    }
-
-    public List<Song> getSongs() {
-        return songs;
-    }
-
-    public void setSongs(List<Song> songs) {
-        this.songs = songs;
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("The artist name can't be empty.");
+        }
+        this.name = name.trim();
     }
 
     public String getCountry() {
@@ -52,6 +49,17 @@ public class Artist {
         this.country = country;
     }
 
+    public int getBirthYear() {
+        return birthYear;
+    }
+
+    public void setBirthYear(int birthYear) {
+        if (birthYear != 0 && (birthYear < 1800 || birthYear > 2100)) {
+            throw new IllegalArgumentException("Invalid birth year: " + birthYear);
+        }
+        this.birthYear = birthYear;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -60,11 +68,28 @@ public class Artist {
         this.description = description;
     }
 
-    public String getPicture() {
-        return picture;
+    public String getPicturePath() {
+        return picturePath;
     }
 
-    public void setPicture(String picture) {
-        this.picture = picture;
+    public void setPicturePath(String picturePath) {
+        this.picturePath = picturePath;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Artist)) return false;
+        return id.equals(((Artist) o).id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }
