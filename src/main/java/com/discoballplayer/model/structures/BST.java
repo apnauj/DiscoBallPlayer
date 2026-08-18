@@ -1,8 +1,5 @@
 package main.java.com.discoballplayer.model.structures;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class BST <T extends Comparable<T>> {
 
     private static class Node<T extends Comparable<T>>{
@@ -21,9 +18,9 @@ public class BST <T extends Comparable<T>> {
         root = insertr(root, value, null);
     }
 
-    private Node insertr(Node<T> current, T value, Node<T> parent){
+    private Node<T> insertr(Node<T> current, T value, Node<T> parent){
         if(current == null){
-            return new Node(value,parent);
+            return new Node<>(value,parent);
         }
 
         else if (value.compareTo(current.value) < 0){
@@ -41,4 +38,28 @@ public class BST <T extends Comparable<T>> {
     public boolean isEmpty() {
         return root == null;
     }
+
+
+    public Node<T> search(T value){
+        return searchr(this.root, value);
+    }
+
+
+    private Node<T> searchr(Node<T> current, T value){
+        if(current == null){
+            return null;
+
+        }
+
+        if(value.compareTo(current.value)<0){
+            return searchr(current.left, value);
+        }
+
+        else if (value.compareTo(current.value) > 0){
+            return searchr(current.rigth, value);
+        }
+
+        return current;
+    }
+
 }
