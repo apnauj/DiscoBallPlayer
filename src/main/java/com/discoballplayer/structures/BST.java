@@ -1,4 +1,4 @@
-package main.java.com.discoballplayer.model.structures;
+package main.java.com.discoballplayer.structures;
 
 public class BST <T extends Comparable<T>> {
 
@@ -61,5 +61,53 @@ public class BST <T extends Comparable<T>> {
 
         return current;
     }
+
+    public void delete(T value){
+        root = deleter(root, value);
+    }
+
+    private Node<T> deleter(Node<T> current, T value){
+
+        if(current == null){
+            return null;
+        }
+
+        if(value.compareTo(current.value) < 0){
+            current.left = deleter(current.left, value);
+        }
+
+        else if (value.compareTo(current.value) > 0){
+            current.rigth = deleter(current.rigth, value);
+        }
+
+        else{
+            if(current.left == null){
+                return current.rigth;
+            }
+
+            if (current.rigth == null){
+                return current.left;
+            }
+
+            T succesor = findMinimun(current.rigth);
+
+            current.value = succesor;
+
+            current.rigth = findMinimun(current.rigth, succesor);
+
+
+        }
+
+        return current;
+    }
+
+
+    private T findMinimun(Node<T> node){
+        while(node.left != null ){
+            node = node.left;
+        }
+        return node.value;
+    }
+
 
 }
