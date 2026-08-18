@@ -1,0 +1,19 @@
+/*
+ * Base stylesheet. Phase 4 grows this into the real theme and adds dark.css;
+ * for now it only proves the stylesheet is found and applied.
+ */
+
+.root-pane {
+    -fx-background-color: #14121c;
+}
+
+.app-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f5f0ff;
+}
+
+.app-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #9b93b5;
+}

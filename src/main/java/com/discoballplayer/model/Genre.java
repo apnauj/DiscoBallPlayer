@@ -1,17 +1,17 @@
-package main.java.com.discoballplayer.model;
+package com.discoballplayer.model;
 
 public enum Genre {
     ROCK("Rock"),
     POP("Pop"),
     HIP_HOP("Hip Hop"),
-    REGGAETON("Reggaetón"),
+    REGGAETON("Reggaeton"),
     SALSA("Salsa"),
-    ELECTRONIC("Electrónica"),
+    ELECTRONIC("Electronic"),
     JAZZ("Jazz"),
-    CLASSICAL("Clásica"),
+    CLASSICAL("Classical"),
     METAL("Metal"),
     INDIE("Indie"),
-    OTHER("Otro");
+    OTHER("Other");
 
     private final String displayName;
 
