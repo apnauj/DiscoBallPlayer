@@ -81,6 +81,11 @@ Rules:
    packages that will exist are added there up front.
 2. Branch per ticket: `feature/<ticket-code-lowercase>`, e.g. `feature/a1-03-simple-queue`.
    PR into `develop`. Never commit to `develop` directly.
+   **Never stack a PR on another feature branch.** A stacked PR merges into its base, not
+   into `develop`, and GitHub does not always retarget it when the base merges — the PR reads
+   `MERGED` while its work never reaches `develop`. `A2-04` through `A2-07` were lost this way
+   and needed a separate recovery PR. If a unit needs code from an unmerged branch, wait for
+   the merge or accept one larger PR.
 3. `mvn test` must be green before opening a PR. A red `develop` stops both tracks.
    **`Tests run: 0` is a failure even when Maven prints `BUILD SUCCESS`.** Surefire fails on an
    unmatched test *class* but not on an unmatched test *method*, so a typo in a `-Dtest=Class#method`
@@ -342,28 +347,28 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
 
 ### A3 — Player façade (`service/`)
 
-- [ ] **[A3-01] `Player` — mode delegation half**
+- [x] **[A3-01] `Player` — mode delegation half**
   - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** Implements `PlayerService`; holds a `MusicLibrary` and the active
     `PlaybackMode`. `setMode()` calls `mode.load(library)`. `next`/`previous`/`current`/
     `hasNext`/`hasPrevious` delegate straight through.
   - **Verification:** `mvn test -Dtest=PlayerTest#setModeReloadsFromLibrary`
 
-- [ ] **[A3-02] `Player` — library CRUD half**
+- [x] **[A3-02] `Player` — library CRUD half**
   - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** `addSong`, `removeSong`, `updateSong`, `listAll`, `search`, `rate` delegate to
     `MusicLibrary`. `rate` validates 0–100 and rethrows as `IllegalArgumentException`.
     `removeSong` on an unknown song throws `SongNotFoundException`.
   - **Verification:** `mvn test -Dtest=PlayerTest#rateRejectsOutOfRangeValues`
 
-- [ ] **[A3-03] `Player` — listener registry and event dispatch**
+- [x] **[A3-03] `Player` — listener registry and event dispatch**
   - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** `addListener`/`removeListener` over a copy-on-write list; fire `onSongChanged`
     from `next`/`previous`, `onPlaybackStateChanged` from `play`/`pause`, `onLibraryChanged` from
     every CRUD method. A throwing listener must not break the loop.
   - **Verification:** `mvn test -Dtest=PlayerTest#notifiesListenersOnSongChange`
 
-- [ ] **[A3-04] Test suite for `Player`**
+- [x] **[A3-04] Test suite for `Player`**
   - **Files:** `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** Cover the three tickets above with a recording fake `PlaybackListener`.
   - **Verification:** `mvn test -Dtest=PlayerTest` — all green.
