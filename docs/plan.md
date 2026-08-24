@@ -563,14 +563,14 @@ background timer thread and touching a node off the FX thread throws at runtime.
     copied into `resources/`.
   - **Verification:** `mvn javafx:run`, pick a file, the absolute path appears in the field.
 
-- [ ] **[B5-04] Wire Add / Edit / Delete from the main view**
+- [x] **[B5-04] Wire Add / Edit / Delete from the main view**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
   - **Objective:** Three toolbar buttons. Add opens an empty dialog then `player.addSong`; Edit
     opens the selected row then `player.updateSong`; Delete calls `player.removeSong`. Edit and
     Delete are disabled when nothing is selected.
   - **Verification:** `mvn javafx:run`, add a song — it appears in the table immediately.
 
-- [ ] **[B5-05] Rating control (0–100)**
+- [x] **[B5-05] Rating control (0–100)**
   - **Files:** `ui/MainController.java`
   - **Objective:** A `Slider` (0–100, snap to 5) in the now-playing bar calling
     `player.rate(current, value)` and refreshing the row.
