@@ -65,6 +65,11 @@ public class SimpleQueue<T> {
         T data = head.data;
         head = head.next;
         if (head == null) {
+            // Not redundant, though no functional test can prove it: enqueue reassigns tail
+            // unconditionally and peek/dequeue throw while empty, so a stale tail is never
+            // read. What it prevents is retention — a drained queue would otherwise hold a
+            // strong reference to the last song it played. tailData() exists so that is
+            // asserted rather than trusted.
             tail = null;
         }
         size--;
@@ -96,5 +101,16 @@ public class SimpleQueue<T> {
      */
     public int size() {
         return size;
+    }
+
+    /**
+     * The element the tail node still points at, or {@code null} if there is none.
+     *
+     * <p>Package-private test seam. Retention is invisible to every behavioural assertion, so
+     * without this the guard in {@link #dequeue()} could be deleted and the suite would stay
+     * green.</p>
+     */
+    T tailData() {
+        return tail == null ? null : tail.data;
     }
 }

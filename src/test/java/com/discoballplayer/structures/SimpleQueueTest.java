@@ -2,6 +2,7 @@ package com.discoballplayer.structures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -148,6 +149,16 @@ class SimpleQueueTest {
         assertEquals(2, queue.size());
         assertEquals(List.of("C", "D"), drain(queue),
                 "after draining, the tail must not still point at a detached node");
+    }
+
+    @Test
+    void drainedQueueDoesNotRetainTheLastSong() {
+        SimpleQueue<String> queue = queueOf("A", "B");
+
+        drain(queue);
+
+        assertNull(queue.tailData(),
+                "a drained queue holding its last element would keep it alive for nothing");
     }
 
     // ---------- validation ----------
