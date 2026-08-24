@@ -578,25 +578,25 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B6 — Visual design (10% of the grade)
 
-- [ ] **[B6-01] Design tokens and base theme in `app.css`**
+- [x] **[B6-01] Design tokens and base theme in `app.css`**
   - **Files:** `resources/com/discoballplayer/css/app.css`
   - **Objective:** Define the palette as CSS `-fx-` looked-up colours in `.root`, then style
     backgrounds, typography and spacing. Every later rule references a token, never a raw hex.
   - **Verification:** `mvn javafx:run` — no unstyled default-grey panels.
 
-- [ ] **[B6-02] Table, button and slider styling**
+- [x] **[B6-02] Table, button and slider styling**
   - **Files:** `resources/com/discoballplayer/css/app.css`
   - **Objective:** Row hover and selection states, a distinct primary style for Play, a visibly
     dimmed `:disabled` state (Previous in Arrival mode must *read* as disabled).
   - **Verification:** `mvn javafx:run` — hover, selection and disabled states are all distinguishable.
 
-- [ ] **[B6-03] [BONUS] Dark theme and toggle**
+- [x] **[B6-03] [BONUS] Dark theme and toggle**
   - **Files:** `resources/com/discoballplayer/css/dark.css`, `ui/MainController.java`
   - **Objective:** `dark.css` overrides only the token block. A toolbar toggle swaps the
     stylesheet on the scene at runtime.
   - **Verification:** `mvn javafx:run`, click the toggle, the whole window re-themes with no relayout.
 
-- [ ] **[B6-04] [BONUS] Keyboard shortcuts**
+- [x] **[B6-04] [BONUS] Keyboard shortcuts**
   - **Files:** `ui/MainController.java`
   - **Objective:** Space = play/pause, ←/→ = previous/next, `Ctrl+F` focuses search,
     `Ctrl+N` opens the add dialog. Registered on the scene, not on individual buttons.

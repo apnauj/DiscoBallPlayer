@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -70,6 +71,7 @@
                 <Button fx:id="addButton" text="Add" onAction="#onAddSong"/>
                 <Button fx:id="editButton" text="Edit" onAction="#onEditSong"/>
                 <Button fx:id="deleteButton" text="Delete" onAction="#onDeleteSong"/>
+                <ToggleButton fx:id="themeToggle" text="Light" onAction="#onToggleTheme"/>
             </HBox>
 
             <!--
