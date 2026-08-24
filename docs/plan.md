@@ -604,6 +604,42 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ---
 
+### B7 — Fixes from manual testing
+
+Found by using the application rather than by reading it. Track A fixed the backend of all
+three in `#35`; these are the two that stayed invisible until the UI caught up.
+
+- [x] **[B7-01] Double-clicking a row plays that song**
+  - **Files:** `ui/MainController.java`, `src/test/java/com/discoballplayer/ui/ClickToPlayTest.java`
+  - **Objective:** A row's double click calls `player.playSong(song)`. Both refusals become a
+    status message: `UnsupportedOperationException` when the mode cannot reposition, and
+    `SongNotFoundException` when the song is not loaded in it. Either reaching the FX event
+    loop breaks the window.
+  - **Constraint:** availability comes from `canPlaySong()`, re-read on every mode change. The
+    UI never names the mode, exactly as the Previous button reads `hasPrevious()`.
+  - **Verification:** `mvn test -Dtest=ClickToPlayTest#arrivalOrderRefusesTheJumpAndSaysWhy`
+
+- [x] **[B7-02] Duration read from the chosen audio file**
+  - **Files:** `ui/SongDialogController.java`, `src/test/java/com/discoballplayer/ui/SongDialogControllerTest.java`
+  - **Objective:** Picking an audio file fills `durationField` from
+    `AudioMetadata.durationSeconds`, formatted with `TimeFormatter.mmss` so `parseDuration`
+    reads it back. An unreadable file leaves the field untouched and always typeable — a song
+    with no audio can only get its duration by being typed.
+  - **Constraint:** read off the FX thread. The reader blocks for up to three seconds on a file
+    it cannot measure, and this runs from a file-chooser handler.
+  - **Verification:** `mvn test -Dtest=SongDialogControllerTest#theDurationIsNeverReadOnTheFxThread`
+
+- [x] **[B7-03] Make `DemoPlayerService.playSong` go through the active mode**
+  - **Files:** `service/DemoPlayerService.java`, `src/test/java/com/discoballplayer/ui/ClickToPlayTest.java`
+  - **Objective:** The version added under the ownership-crossing walked the `ArrayList` index
+    directly, so the stub accepted a jump in arrival order and never raised
+    `UnsupportedOperationException` — the one behaviour click-to-play has to get right, and the
+    same class of gap `B4-05` closed for `hasPrevious`. It now delegates to the mode, as the
+    rest of the class does and as `Player` does.
+  - **Verification:** `mvn test -Dtest=ClickToPlayTest#arrivalOrderIsAskedRatherThanNamed`
+
+---
+
 ## 6. Phase C — Integration and defense material (both tracks, sequential)
 
 Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
@@ -876,6 +912,28 @@ Append here when you need something from a file the other track owns. Format:
   Re-check with
   `grep -c "Time complexity" src/main/java/com/discoballplayer/structures/DoublyCircularLinkedList.java`
   — currently `4`.
+
+- [ ] (from Track B to Track A) `AudioMetadata.durationSeconds` returns empty for any file
+  without metadata tags, after burning the full three-second timeout. It waits on the
+  `Media` metadata map, but that map carries tags — artist, title, album art — while the
+  duration only becomes known once a `MediaPlayer` reaches `READY`. A tagless file never fires
+  the listener.
+
+  Measured on a generated three-second WAV:
+
+  ```
+  AUDIOMETADATA=OptionalInt.empty  tookMs=3056
+  VIA_MEDIAPLAYER_READY=true  duration=3000.0 ms  seconds=3.0
+  ```
+
+  The same file, read through `new MediaPlayer(media)` with `setOnReady`, gives the exact
+  duration. Suggested fix: create a `MediaPlayer`, await `READY`, read `media.getDuration()`,
+  then `dispose()`.
+
+  Track B mitigated the symptom on its side — `SongDialogController` now reads off the FX
+  thread, because a three-second block from a file-chooser handler freezes the window — but
+  the reader itself is Track A's and still answers empty for most files. `B7-02` works
+  correctly against whatever the reader returns; it just rarely returns anything today.
 
 - [x] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
   The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership

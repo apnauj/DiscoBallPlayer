@@ -2,6 +2,7 @@ package com.discoballplayer.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -161,25 +162,38 @@ public class DemoPlayerService implements PlayerService {
     }
 
     /**
-     * Added by Track A when {@code PlayerService} gained click-to-play; the stub supports it so
-     * the UI behaves the same on demo data as on the real service.
+     * Jumps to a song, through the active mode.
+     *
+     * <p>Arrived from Track A walking the index directly, which meant the stub accepted a jump
+     * in arrival order and never raised {@code UnsupportedOperationException} — the one
+     * behaviour click-to-play has to get right. Delegating matches the rest of this class and
+     * matches {@code Player}.</p>
+     *
+     * @throws UnsupportedOperationException if the active mode cannot reposition
+     * @throws SongNotFoundException if the song is not loaded in the active mode
      */
     @Override
     public Song playSong(Song song) {
+        Objects.requireNonNull(song, "The song can't be null.");
+        Song selected = (mode != null) ? mode.jumpTo(song) : jumpByIndex(song);
+        elapsedSeconds = 0;
+        listeners.forEach(listener -> listener.onSongChanged(selected));
+        setPlaying(true);
+        return selected;
+    }
+
+    private Song jumpByIndex(Song song) {
         int target = songs.indexOf(song);
         if (target < 0) {
             throw new SongNotFoundException("Not in the demo library: " + song.getTitle());
         }
         index = target;
-        elapsedSeconds = 0;
-        listeners.forEach(listener -> listener.onSongChanged(song));
-        setPlaying(true);
-        return song;
+        return songs.get(target);
     }
 
     @Override
     public boolean canPlaySong() {
-        return !songs.isEmpty();
+        return (mode != null) ? mode.canJumpTo() : !songs.isEmpty();
     }
 
     @Override

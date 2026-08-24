@@ -3,12 +3,18 @@ package com.discoballplayer.ui;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.OptionalInt;
+import java.util.function.Function;
 
 import com.discoballplayer.model.Album;
 import com.discoballplayer.model.Artist;
 import com.discoballplayer.model.Genre;
 import com.discoballplayer.model.Song;
+import com.discoballplayer.playback.audio.AudioMetadata;
+import com.discoballplayer.util.TimeFormatter;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -116,7 +122,7 @@ public class SongDialogController {
         titleField.setText(song.getTitle());
         artistField.setText(song.getArtists().isEmpty() ? "" : song.getArtistsNames());
         albumField.setText(song.getAlbum() == null ? "" : song.getAlbum().getTitle());
-        durationField.setText(com.discoballplayer.util.TimeFormatter.mmss(song.getDurationSeconds()));
+        durationField.setText(TimeFormatter.mmss(song.getDurationSeconds()));
         genreCombo.setValue(song.getGenre());
         yearField.setText(String.valueOf(song.getYear()));
         ratingField.setText(String.valueOf(song.getRating()));
@@ -230,7 +236,72 @@ public class SongDialogController {
         chooser.setTitle("Choose an audio file");
         chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("Audio", "*.mp3", "*.wav", "*.m4a", "*.aac"));
-        storeAbsolutePath(chooser.showOpenDialog(window()), audioField);
+        File chosen = chooser.showOpenDialog(window());
+        storeAbsolutePath(chosen, audioField);
+        fillDurationFrom(chosen);
+    }
+
+    /**
+     * Where a file's duration comes from.
+     *
+     * <p>Package-private and replaceable so a test can supply a known answer instead of
+     * depending on the platform's decoder, which behaves differently per file and per OS.</p>
+     */
+    private Function<String, OptionalInt> durationSource = AudioMetadata::durationSeconds;
+
+    void durationSource(Function<String, OptionalInt> source) {
+        this.durationSource = Objects.requireNonNull(source);
+    }
+
+    /**
+     * Fills the duration from the chosen file's own headers.
+     *
+     * <p>The file knows its length better than the person typing, so reading it removes the
+     * commonest way for a catalogue entry to be wrong.</p>
+     *
+     * <p>When the file will not give one up — unreadable, not audio, or slow enough that the
+     * reader gives up — the field is left exactly as it was, and it is never made read-only:
+     * a song with no audio file can only get its duration by being typed, so a field that
+     * fills itself sometimes must still accept typing always.</p>
+     *
+     * <p>Written as {@code m:ss} to match what {@link #setSong} writes and what
+     * {@link #parseDuration} reads back.</p>
+     */
+    void fillDurationFrom(File chosen) {
+        readDurationInBackground(chosen);
+    }
+
+    /**
+     * Reads the duration off the FX thread and applies it back on it.
+     *
+     * <p>Not an optimisation. The reader blocks for up to three seconds on a file whose
+     * duration it cannot determine, and this runs from a file-chooser handler on the FX
+     * thread, so doing it inline freezes the whole window for those three seconds — on
+     * exactly the files where nothing is gained by waiting.</p>
+     *
+     * @return the worker, so a test can wait for it; callers in the UI ignore it
+     */
+    Thread readDurationInBackground(File chosen) {
+        if (chosen == null) {
+            return null;
+        }
+        String path = chosen.getAbsolutePath();
+        Thread worker = new Thread(() -> {
+            OptionalInt seconds = durationSource.apply(path);
+            if (seconds.isPresent()) {
+                Platform.runLater(() -> applyDuration(seconds));
+            }
+        }, "duration-reader");
+        worker.setDaemon(true);
+        worker.start();
+        return worker;
+    }
+
+    /** Writes a read duration into the field, leaving it untouched when there is none. */
+    void applyDuration(OptionalInt seconds) {
+        if (seconds.isPresent()) {
+            durationField.setText(TimeFormatter.mmss(seconds.getAsInt()));
+        }
     }
 
     /**
