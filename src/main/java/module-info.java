@@ -16,9 +16,14 @@ module com.discoballplayer {
     opens com.discoballplayer.ui to javafx.fxml;
     opens com.discoballplayer.model to com.fasterxml.jackson.databind;
 
-    // Only non-empty packages may be exported; add playback, service and repository
-    // here as those packages gain their first class.
+    // Finalized in F0-09, once every package had its first class. Only non-empty packages
+    // may be exported, so this list is complete and is not edited again.
     exports com.discoballplayer;
     exports com.discoballplayer.model;
     exports com.discoballplayer.structures;
+    exports com.discoballplayer.playback;
+    exports com.discoballplayer.service;
+    exports com.discoballplayer.repository;
+    exports com.discoballplayer.util;
+    exports com.discoballplayer.exception;
 }

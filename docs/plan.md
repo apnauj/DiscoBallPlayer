@@ -1,0 +1,785 @@
+# DiscoBallPlayer — Implementation Plan
+
+> **Single source of truth.** Both Claude Code sessions (Track A and Track B) read this file
+> at the start of every work session and tick boxes here as tasks land. Nothing is "done"
+> until its box is `- [x]` **and** its verification command passes.
+
+---
+
+## 0. Repository state at plan time (2026-08-19, `develop` @ `99b6888`)
+
+Verified by running the build, not assumed:
+
+| Fact | Status |
+|---|---|
+| `mvn clean compile` | **FAILS.** `BST.java` declares package `main.java.com.discoballplayer.structures` and calls a two-argument `findMinimun` that does not exist. |
+| `CLAUDE.md` | **Deleted** (staged deletion in the working tree). Must be restored — see `F0-01`. |
+| `model/` | `Song`, `Artist`, `Album`, `Genre`, `Playlist`, `MusicLibrary` implemented and sound. |
+| `structures/` | `DoublyCircularLinkedList` present but has no bidirectional cursor. `BST` broken. No queue at all. |
+| `playback/`, `service/`, `repository/`, `util/`, `exception/` | Empty (`.gitkeep` only). |
+| `src/test/` | Empty. **Zero tests exist.** Structures carry 35% of the grade. |
+| UI | `main-view.fxml` + `MainController` are Phase-1 placeholders (one label). |
+
+**Consequence:** Phase 0 is hard-blocking. Neither track can start until `mvn clean compile`
+is green again, because Track B cannot run the app and Track A cannot run a test.
+
+---
+
+## 1. Naming decisions (locked — do not re-litigate)
+
+The prompt, the README and the committed code disagree on three names. Locked resolutions:
+
+| Concept | Locked name | Why |
+|---|---|---|
+| FIFO queue | `SimpleQueue<T>` | Already the name in `README.md` and `CLAUDE.md`. "CustomQueue" appears in no file. |
+| Binary search tree | `BST<T>` | The file exists with merged PR history (`#10`). Renaming to `BinarySearchTree` is churn; the README gets aligned instead (`C-05`). |
+| UI seam | `PlayerService` (interface) | The UI must compile against an interface so Track B can run on a stub. `Player` is the real implementation of it. |
+
+---
+
+## 2. Parallelization protocol
+
+Two sessions run concurrently on **disjoint file sets**. Ownership is absolute — if you need a
+change in a file you do not own, write it under "Cross-track requests" at the bottom of this
+file and keep working on something else.
+
+| Owner | Owns exclusively |
+|---|---|
+| **Track A** | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/Player.java`, `service/*.java` interfaces, `module-info.java`, all of `src/test/` |
+| **Track B** | `ui/`, `resources/**/fxml/`, `resources/**/css/`, `resources/**/images/`, `service/DemoPlayerService.java` |
+| **Shared, Phase 0 only** | Everything created in `F0-*`. After Phase 0 ends, Phase 0 files fall under the ownership table above. |
+
+Rules:
+
+1. `module-info.java` is touched **once**, in `F0-09`, and never again. All `exports` for
+   packages that will exist are added there up front.
+2. Branch per ticket: `feature/<ticket-code-lowercase>`, e.g. `feature/a1-03-simple-queue`.
+   PR into `develop`. Never commit to `develop` directly.
+3. `mvn test` must be green before opening a PR. A red `develop` stops both tracks.
+4. Tick the box in this file **in the same PR** as the work.
+
+---
+
+## 3. Phase 0 — Alignment, contracts and configuration (BLOCKING)
+
+Executed by **one session only** (Track A takes it). Track B waits. Target: 1 sitting.
+
+- [x] **[F0-01] Restore `CLAUDE.md` at the repository root**
+  - **Files:** `CLAUDE.md`
+  - **Objective:** Recreate the deleted contributor guide, updated for the two-track workflow
+    and for the obligation to maintain `docs/plan.md`.
+  - **Content:** paste the block in §7 of this document verbatim.
+  - **Verification:** `git status --short CLAUDE.md` shows `A`/`M`, not `D`; file contains the
+    string `docs/plan.md`.
+
+- [x] **[F0-02] Fix `BST.java` package and compilation errors**
+  - **Files:** `src/main/java/com/discoballplayer/structures/BST.java`
+  - **Objective:** Make the repository compile again. Package becomes
+    `com.discoballplayer.structures`; `insertr`'s left branch recurses on `current.left` (today
+    it recurses on `current.rigth`); `deleter` calls `deleter(current.rigth, successor)` instead
+    of the non-existent two-arg `findMinimun`.
+  - **Scope limit:** compilation and those two logic bugs only. The parent-pointer rework and
+    the cursor are `A1-06`/`A1-07`. Do **not** start them here.
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [x] **[F0-03] Rename the `rigth` typo across `BST`**
+  - **Files:** `src/main/java/com/discoballplayer/structures/BST.java`
+  - **Objective:** `rigth` → `right` everywhere. Pure rename, no behaviour change, own commit
+    so it never pollutes a logic diff.
+  - **Verification:** `grep -c rigth src/main/java/com/discoballplayer/structures/BST.java`
+    returns `0`; `mvn clean compile` exits 0.
+
+- [x] **[F0-04] Add the two runtime exceptions**
+  - **Files:** `exception/EmptyStructureException.java`, `exception/SongNotFoundException.java`
+  - **Objective:** Both extend `RuntimeException` with a message constructor. Structures signal
+    "empty" by throwing, never by returning `null`.
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [x] **[F0-05] Define the `PlaybackMode` contract**
+  - **Files:** `playback/PlaybackMode.java`
+  - **Objective:** Interface only, no implementation, no abstract base yet.
+  - **Signature (locked):**
+    ```java
+    public interface PlaybackMode {
+        void load(MusicLibrary library);
+        Song next();            // throws EmptyStructureException when exhausted
+        Song previous();        // throws UnsupportedOperationException in ArrivalMode
+        boolean hasNext();
+        boolean hasPrevious();  // always false in ArrivalMode
+        Song current();
+        String displayName();
+    }
+    ```
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [x] **[F0-06] Define the `PlaybackListener` observer contract**
+  - **Files:** `service/PlaybackListener.java`
+  - **Objective:** Plain-Java callback the UI implements. **No JavaFX types here** — the
+    backend must not import `javafx.*`. Callbacks may fire off the FX thread; Track B wraps
+    every handler body in `Platform.runLater`.
+  - **Signature (locked):**
+    ```java
+    public interface PlaybackListener {
+        void onSongChanged(Song song);
+        void onPlaybackStateChanged(boolean playing);
+        void onProgress(int elapsedSeconds, int totalSeconds);
+        void onLibraryChanged();
+    }
+    ```
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [x] **[F0-07] Define the `PlayerService` façade contract**
+  - **Files:** `service/PlayerService.java`
+  - **Objective:** The only type the UI is allowed to call. Locked signature:
+    ```java
+    public interface PlayerService {
+        void setMode(PlaybackMode mode);   PlaybackMode getMode();
+        Song next();      Song previous();
+        boolean hasNext(); boolean hasPrevious();
+        Song current();
+        void play();      void pause();    boolean isPlaying();
+        void addSong(Song song);  void removeSong(Song song);  void updateSong(Song song);
+        List<Song> listAll();     List<Song> search(String query);
+        void rate(Song song, int rating);
+        void addListener(PlaybackListener l);  void removeListener(PlaybackListener l);
+    }
+    ```
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [x] **[F0-08] Define the `LibraryRepository` contract**
+  - **Files:** `repository/LibraryRepository.java`
+  - **Objective:** `MusicLibrary load()` and `void save(MusicLibrary library)`. Interface only.
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [x] **[F0-09] Add `util/TimeFormatter` and open `module-info` for all packages**
+  - **Files:** `util/TimeFormatter.java`, `src/main/java/module-info.java`
+  - **Objective:** `TimeFormatter.mmss(int seconds)`. Then add `exports` for `playback`,
+    `service`, `repository`, `util`, `exception` — legal now that each package has a class.
+    **This is the last edit to `module-info.java` in the whole project.**
+  - **Verification:** `mvn clean compile && mvn javafx:run` opens the placeholder window.
+
+- [x] **[F0-10] Ship `DemoPlayerService` so Track B can start immediately**
+  - **Files:** `service/DemoPlayerService.java`
+  - **Objective:** In-memory `PlayerService` stub over ~12 hard-coded songs. `next()`/`previous()`
+    walk an `ArrayList` index, `play()`/`pause()` flip a boolean and drive a
+    `ScheduledExecutorService` that fires `onProgress` once a second. No real structures.
+  - **Ownership note:** after this ticket the file belongs to **Track B**.
+  - **Verification:** `mvn clean compile` exits 0; `new DemoPlayerService().listAll().size() == 12`.
+
+**Phase 0 exit gate — PASSED 2026-08-23** on branch `feature/f0-contracts`:
+`mvn clean compile` exits 0, `mvn javafx:run` opens the placeholder window with no exception,
+`DemoPlayerService` seeds 12 songs, `CLAUDE.md` restored. **Both tracks may start.**
+
+Note for Track A: `F0-02` was a full rewrite of `BST.java` rather than a patch — the two logic
+bugs could not be fixed without also correcting the `parent` maintenance the delete path
+destroyed. See the amended `A1-05` and `A1-06`.
+
+---
+
+## 4. TRACK A — Backend, data structures, persistence
+
+Runs in parallel with Track B. Never opens an FXML file.
+
+### A1 — Hand-written structures (`structures/`) — 35% of the grade
+
+- [ ] **[A1-01] Bidirectional cursor on `DoublyCircularLinkedList`**
+  - **Files:** `structures/DoublyCircularLinkedList.java`
+  - **Objective:** Add a public nested `Cursor` (`current()`, `next()`, `previous()`) that walks
+    the ring infinitely in both directions, plus `Cursor cursor()` returning one positioned at
+    the head. `ShuffleMode` navigates through this and never sees `Node`.
+  - **Constraint:** `Node` stays private. `cursor()` on an empty list throws `EmptyStructureException`.
+  - **Verification:** `mvn test -Dtest=DoublyCircularLinkedListTest#cursorWrapsForwardAndBackward`
+
+- [ ] **[A1-02] Test suite for `DoublyCircularLinkedList`**
+  - **Files:** `src/test/java/com/discoballplayer/structures/DoublyCircularLinkedListTest.java`
+  - **Objective:** Cover insert into empty, forward wrap tail→head, backward wrap head→tail,
+    delete of head / tail / middle / only element, `size` after each, `has` on absent element.
+  - **Verification:** `mvn test -Dtest=DoublyCircularLinkedListTest` — all green.
+
+- [ ] **[A1-03] Implement `SimpleQueue<T>`**
+  - **Files:** `structures/SimpleQueue.java`
+  - **Objective:** Hand-written FIFO with head/tail node references. API: `enqueue`, `dequeue`,
+    `peek`, `isEmpty`, `size`. `dequeue`/`peek` on empty throw `EmptyStructureException`.
+  - **Constraint:** no `java.util` collection inside. Javadoc states O(1) for every operation.
+  - **Verification:** `mvn test -Dtest=SimpleQueueTest#preservesFifoOrder`
+
+- [ ] **[A1-04] Test suite for `SimpleQueue`**
+  - **Files:** `src/test/java/com/discoballplayer/structures/SimpleQueueTest.java`
+  - **Objective:** FIFO order over ≥10 enqueues, `dequeue` on empty throws, `peek` does not
+    remove, `size` tracks both operations, drain-then-refill works.
+  - **Verification:** `mvn test -Dtest=SimpleQueueTest` — all green.
+
+- [ ] **[A1-05] Clean up the `BST` public API**
+  - **Files:** `structures/BST.java`
+  - **Objective:** `F0-02` already deleted the `Node`-returning `search` and made `Node` private.
+    What remains: add `boolean contains(T value)`, `T find(T value)` and `size()`.
+  - **Verification:** `mvn test -Dtest=BSTTest#containsFindsInsertedValue`
+
+- [ ] **[A1-06] Maintain `parent` pointers through insert and delete in `BST`**
+  - **Files:** `structures/BST.java`
+  - **Objective:** `F0-02` rewired `parent` through `insert` and `delete` while fixing the
+    rewrite. This ticket is now the **proof**: write the test that would have caught the
+    dangling pointers, and fix whatever it finds. Do not assume `F0-02` got every case right.
+  - **Verification:** `mvn test -Dtest=BSTTest#parentPointersStayConsistentAfterDeletes`
+
+- [ ] **[A1-07] In-order successor / predecessor and a bidirectional cursor on `BST`**
+  - **Files:** `structures/BST.java`
+  - **Objective:** `successor(node)` / `predecessor(node)` via parent pointers, plus a public
+    `Cursor` (`current`, `next`, `previous`, `hasNext`, `hasPrevious`) starting at the minimum.
+  - **Hard constraint:** **never flatten the tree into a list.** No `List`, no array, no
+    `Collections.sort` anywhere in this file. This is the single most-inspected rule at defense.
+  - **Verification:** `mvn test -Dtest=BSTTest#cursorWalksInOrderBothDirections`
+
+- [ ] **[A1-08] Test suite for `BST` — traversal and boundaries**
+  - **Files:** `src/test/java/com/discoballplayer/structures/BSTTest.java`
+  - **Objective:** In-order walk returns sorted order; first element has no predecessor; last
+    has no successor; duplicate titles by different artists both survive (`Song.compareTo`
+    breaks ties on `id`).
+  - **Verification:** `mvn test -Dtest=BSTTest` — all green.
+
+- [ ] **[A1-09] Test suite for `BST` — deletion cases**
+  - **Files:** `src/test/java/com/discoballplayer/structures/BSTTest.java` (append)
+  - **Objective:** Delete a leaf, a node with one child, a node with two children, and the root;
+    in-order order stays sorted after each; `size` decrements correctly.
+  - **Verification:** `mvn test -Dtest=BSTTest#deleteNodeWithTwoChildren`
+
+- [ ] **[A1-10] Javadoc with complexity on every public structure method**
+  - **Files:** `structures/DoublyCircularLinkedList.java`, `structures/SimpleQueue.java`, `structures/BST.java`
+  - **Objective:** Every public method gets `@implNote Time complexity: O(...)`. These comments
+    are the oral-defense script.
+  - **Verification:** `mvn clean compile` exits 0; every public method in the three files has a
+    complexity line (visual check).
+
+### A2 — Playback modes (`playback/`)
+
+- [ ] **[A2-01] `AbstractPlaybackMode` shared base**
+  - **Files:** `playback/AbstractPlaybackMode.java`
+  - **Objective:** Holds `current` and the `MusicLibrary` reference; default `previous()` /
+    `hasPrevious()`. Subclasses override only what differs. This is the project's one justified
+    use of inheritance — do not force it elsewhere.
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [ ] **[A2-02] `ShuffleMode` over `DoublyCircularLinkedList`**
+  - **Files:** `playback/ShuffleMode.java`
+  - **Objective:** `load()` shuffles the **insertion order once**, then navigates via the
+    `A1-01` cursor. Never re-shuffles inside `next()` — that would make `previous()` meaningless.
+    `hasNext()`/`hasPrevious()` are always `true` for a non-empty library.
+  - **Verification:** `mvn test -Dtest=ShuffleModeTest#nextThenPreviousReturnsToSameSong`
+
+- [ ] **[A2-03] Test suite for `ShuffleMode`**
+  - **Files:** `src/test/java/com/discoballplayer/playback/ShuffleModeTest.java`
+  - **Objective:** Wraps infinitely forward and backward; `next()` then `previous()` returns the
+    same song; two `load()` calls on the same library produce different orders (seeded, tolerant).
+  - **Verification:** `mvn test -Dtest=ShuffleModeTest` — all green.
+
+- [ ] **[A2-04] `ArrivalMode` over `SimpleQueue`**
+  - **Files:** `playback/ArrivalMode.java`
+  - **Objective:** Strict FIFO. `next()` dequeues permanently. `previous()` throws
+    `UnsupportedOperationException`, `hasPrevious()` returns `false` — that disabled Previous
+    button is the visible proof of FIFO at defense. `next()` on empty throws `EmptyStructureException`.
+  - **Verification:** `mvn test -Dtest=ArrivalModeTest#previousAlwaysUnsupported`
+
+- [ ] **[A2-05] Test suite for `ArrivalMode`**
+  - **Files:** `src/test/java/com/discoballplayer/playback/ArrivalModeTest.java`
+  - **Objective:** FIFO order matches library insertion order; queue drains to empty; exhausted
+    `next()` throws; `hasPrevious()` is false at every step; the source `MusicLibrary` is untouched.
+  - **Verification:** `mvn test -Dtest=ArrivalModeTest` — all green.
+
+- [ ] **[A2-06] `AlphabeticalMode` over `BST`**
+  - **Files:** `playback/AlphabeticalMode.java`
+  - **Objective:** Builds a `BST<Song>` on `load()` and steps the `A1-07` cursor. Ordering comes
+    from `Song.compareTo` (title, case-insensitive, tie-broken on `id`).
+  - **Verification:** `mvn test -Dtest=AlphabeticalModeTest#visitsSongsInTitleOrder`
+
+- [ ] **[A2-07] Test suite for `AlphabeticalMode`**
+  - **Files:** `src/test/java/com/discoballplayer/playback/AlphabeticalModeTest.java`
+  - **Objective:** Title order forward; reverse order backward; `hasNext()` false at the last
+    song; `hasPrevious()` false at the first; unsorted library input still yields sorted output.
+  - **Verification:** `mvn test -Dtest=AlphabeticalModeTest` — all green.
+
+### A3 — Player façade (`service/`)
+
+- [ ] **[A3-01] `Player` — mode delegation half**
+  - **Files:** `service/Player.java`
+  - **Objective:** Implements `PlayerService`; holds a `MusicLibrary` and the active
+    `PlaybackMode`. `setMode()` calls `mode.load(library)`. `next`/`previous`/`current`/
+    `hasNext`/`hasPrevious` delegate straight through.
+  - **Verification:** `mvn test -Dtest=PlayerTest#setModeReloadsFromLibrary`
+
+- [ ] **[A3-02] `Player` — library CRUD half**
+  - **Files:** `service/Player.java`
+  - **Objective:** `addSong`, `removeSong`, `updateSong`, `listAll`, `search`, `rate` delegate to
+    `MusicLibrary`. `rate` validates 0–100 and rethrows as `IllegalArgumentException`.
+    `removeSong` on an unknown song throws `SongNotFoundException`.
+  - **Verification:** `mvn test -Dtest=PlayerTest#rateRejectsOutOfRangeValues`
+
+- [ ] **[A3-03] `Player` — listener registry and event dispatch**
+  - **Files:** `service/Player.java`
+  - **Objective:** `addListener`/`removeListener` over a copy-on-write list; fire `onSongChanged`
+    from `next`/`previous`, `onPlaybackStateChanged` from `play`/`pause`, `onLibraryChanged` from
+    every CRUD method. A throwing listener must not break the loop.
+  - **Verification:** `mvn test -Dtest=PlayerTest#notifiesListenersOnSongChange`
+
+- [ ] **[A3-04] Test suite for `Player`**
+  - **Files:** `src/test/java/com/discoballplayer/service/PlayerTest.java`
+  - **Objective:** Cover the three tickets above with a recording fake `PlaybackListener`.
+  - **Verification:** `mvn test -Dtest=PlayerTest` — all green.
+
+### A4 — JSON persistence (`repository/`)
+
+- [ ] **[A4-01] Jackson DTOs for the model**
+  - **Files:** `repository/dto/SongDto.java`, `repository/dto/LibraryDto.java`
+  - **Objective:** `Song` has no no-arg constructor and a final generated `id`, so Jackson cannot
+    bind it directly. Flat DTOs carry `id`, title, artist names, album title, duration, genre,
+    year, rating, coverPath, audioPath. **Do not add Jackson annotations to `model/`.**
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [ ] **[A4-02] `LibraryMapper` between DTO and model**
+  - **Files:** `repository/LibraryMapper.java`
+  - **Objective:** `LibraryDto toDto(MusicLibrary)` and `MusicLibrary toModel(LibraryDto)`,
+    de-duplicating `Artist` and `Album` instances by name/title on the way back.
+  - **Verification:** `mvn test -Dtest=LibraryMapperTest#roundTripPreservesEveryField`
+
+- [ ] **[A4-03] `JsonLibraryRepository`**
+  - **Files:** `repository/JsonLibraryRepository.java`
+  - **Objective:** Reads and writes `~/.discoballplayer/library.json` via Jackson. A missing file
+    means an empty library, not an exception. Write to a temp file and move, so a crash mid-save
+    cannot corrupt the catalogue.
+  - **Verification:** `mvn test -Dtest=JsonLibraryRepositoryTest#missingFileYieldsEmptyLibrary`
+
+- [ ] **[A4-04] Test suite for the repository**
+  - **Files:** `src/test/java/com/discoballplayer/repository/JsonLibraryRepositoryTest.java`
+  - **Objective:** Save-then-load round trip over `@TempDir`; missing file; malformed JSON
+    surfaces a clear exception rather than a Jackson stack trace.
+  - **Verification:** `mvn test -Dtest=JsonLibraryRepositoryTest` — all green.
+
+### A5 — Audio and progress (`playback/audio/`)
+
+- [ ] **[A5-01] `AudioEngine` interface**
+  - **Files:** `playback/audio/AudioEngine.java`
+  - **Objective:** `load(Song)`, `play()`, `pause()`, `stop()`, `elapsedSeconds()`,
+    `setProgressCallback(IntConsumer)`. Keeps `Player` independent of whether audio is real.
+  - **Verification:** `mvn clean compile` exits 0.
+
+- [ ] **[A5-02] `SimulatedAudioEngine` (timer-driven)**
+  - **Files:** `playback/audio/SimulatedAudioEngine.java`
+  - **Objective:** `ScheduledExecutorService` ticking once a second up to `song.getDurationSeconds()`,
+    then signalling completion. This is the guaranteed-working progress bar; real audio is a bonus.
+  - **Verification:** `mvn test -Dtest=SimulatedAudioEngineTest#emitsOneTickPerSecond`
+
+- [ ] **[A5-03] Test suite for `SimulatedAudioEngine`**
+  - **Files:** `src/test/java/com/discoballplayer/playback/SimulatedAudioEngineTest.java`
+  - **Objective:** Ticks advance while playing, freeze on `pause`, reset on `stop`, and stop at
+    the song duration. Use an injectable clock so the test does not sleep for minutes.
+  - **Verification:** `mvn test -Dtest=SimulatedAudioEngineTest` — all green.
+
+- [ ] **[A5-04] Wire `AudioEngine` into `Player`**
+  - **Files:** `service/Player.java`
+  - **Objective:** `Player` takes an `AudioEngine` by constructor, forwards `play`/`pause`, and
+    republishes engine ticks as `onProgress`. On track completion it calls `next()` if `hasNext()`.
+  - **Verification:** `mvn test -Dtest=PlayerTest#advancesToNextSongOnCompletion`
+
+- [ ] **[A5-05] [BONUS] `JavaFxAudioEngine` over `javafx.media`**
+  - **Files:** `playback/audio/JavaFxAudioEngine.java`
+  - **Objective:** Real MP3/WAV playback from `song.getAudioPath()`. Falls back to
+    `SimulatedAudioEngine` when the path is null or the file will not open.
+  - **Verification:** `mvn javafx:run`, load a real MP3, audio is audible and the bar tracks it.
+
+---
+
+## 5. TRACK B — UI, UX and controllers
+
+Runs in parallel with Track A, compiling against `PlayerService` and running against
+`DemoPlayerService` (`F0-10`). **Track B never imports `com.discoballplayer.structures`** —
+if it does, that is a bug, not a shortcut.
+
+Every `PlaybackListener` callback body is wrapped in `Platform.runLater`: events arrive from a
+background timer thread and touching a node off the FX thread throws at runtime.
+
+### B1 — Application shell
+
+- [ ] **[B1-01] Three-region layout in `main-view.fxml`**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
+  - **Objective:** Replace the placeholder with a `BorderPane`: left sidebar (mode selector,
+    filters), centre (library table), bottom (now-playing bar). Empty containers with `fx:id`s;
+    no controls yet.
+  - **Verification:** `mvn javafx:run` opens a window with three visibly distinct regions.
+
+- [ ] **[B1-02] `MainController` holds a `PlayerService`**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Field `private PlayerService player = new DemoPlayerService();` (one line to
+    swap in `C-01`), plus `initialize()` registering the controller as a `PlaybackListener`.
+  - **Verification:** `mvn javafx:run` starts with no FXML injection exception in the console.
+
+### B2 — Library view
+
+- [ ] **[B2-01] Library `TableView` columns**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
+  - **Objective:** `TableView<Song>` with columns Title, Artist, Album, Duration, Genre, Year,
+    Rating. Column widths proportional; the table grows with the window.
+  - **Verification:** `mvn javafx:run` shows seven headed columns.
+
+- [ ] **[B2-02] Populate the table from `player.listAll()`**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Bind cell value factories, load rows in `initialize()`, refresh on
+    `onLibraryChanged`. Duration renders through `TimeFormatter.mmss`.
+  - **Verification:** `mvn javafx:run` lists the 12 demo songs with formatted durations.
+
+- [ ] **[B2-03] Search box filtering the table**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
+  - **Objective:** A `TextField` whose text listener calls `player.search(query)` and replaces the
+    table's items. Empty query restores the full list.
+  - **Verification:** `mvn javafx:run`, type an artist name, only matching rows remain.
+
+### B3 — Now-playing panel
+
+- [ ] **[B3-01] Now-playing bar markup**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
+  - **Objective:** Bottom bar: `ImageView` cover (64×64), title and artist labels, elapsed /
+    total labels, `ProgressBar`. `fx:id`s only, wiring comes next.
+  - **Verification:** `mvn javafx:run` shows the bar with placeholder text.
+
+- [ ] **[B3-02] Render metadata on `onSongChanged`**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Update title, artist and cover from the incoming `Song`. Missing or unreadable
+    `coverPath` falls back to `images/default-cover.png` — never an exception, never a blank box.
+  - **Verification:** `mvn javafx:run`, press Next, metadata changes.
+
+- [ ] **[B3-03] Default cover asset**
+  - **Files:** `resources/com/discoballplayer/images/default-cover.png`
+  - **Objective:** Ship a 512×512 placeholder so `B3-02`'s fallback resolves.
+  - **Verification:** the file exists and `mvn javafx:run` renders it for a song with no cover.
+
+- [ ] **[B3-04] Progress bar driven by `onProgress`**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Set `progressBar.setProgress(elapsed / (double) total)` and both time labels,
+    inside `Platform.runLater`. Reset to 0 on song change.
+  - **Verification:** `mvn javafx:run`, press Play, the bar advances once a second.
+
+### B4 — Transport and mode selection
+
+- [ ] **[B4-01] Transport controls markup**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
+  - **Objective:** Previous / Play-Pause / Next buttons with `fx:id` and `onAction` handlers.
+  - **Verification:** `mvn javafx:run` shows three clickable buttons.
+
+- [ ] **[B4-02] Transport handlers and Play/Pause toggle**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Handlers call `player.next()`, `player.previous()`, `player.play()`/`pause()`.
+    The button label follows `onPlaybackStateChanged`, not local state.
+  - **Verification:** `mvn javafx:run`, Play flips the label to Pause and back.
+
+- [ ] **[B4-03] Mode selector and Previous-button disabling**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
+  - **Objective:** Three radio buttons (Shuffle / Arrival / Alphabetical) calling
+    `player.setMode(...)`. After every navigation, `previousButton.setDisable(!player.hasPrevious())`.
+  - **Grading note:** the Previous button greying out in Arrival mode is the demo moment for the
+    "three playback modes" rubric item. Get it right.
+  - **Verification:** `mvn javafx:run`, pick Arrival, Previous is greyed out; pick Shuffle, it enables.
+
+- [ ] **[B4-04] Guard the UI against an exhausted queue**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Catch `EmptyStructureException` around `next()` and show a status message
+    ("Queue finished") instead of letting the exception reach the FX event loop.
+  - **Verification:** `mvn javafx:run`, Arrival mode, press Next past the last song — a message,
+    no stack trace in the console.
+
+### B5 — Add / edit dialog
+
+- [ ] **[B5-01] `song-dialog.fxml` form**
+  - **Files:** `resources/com/discoballplayer/fxml/song-dialog.fxml`
+  - **Objective:** `GridPane` with fields for title, artist, album, duration, genre
+    (`ComboBox<Genre>`), year, rating, cover path, audio path, plus Save / Cancel.
+  - **Verification:** the file loads in Scene Builder / `FXMLLoader` without error.
+
+- [ ] **[B5-02] `SongDialogController` — read and write the form**
+  - **Files:** `ui/SongDialogController.java`
+  - **Objective:** `setSong(Song)` fills the form for edit mode (null means create); `getResult()`
+    returns a built `Song`. Validation errors mark the field, they do not throw.
+  - **Verification:** `mvn javafx:run`, open the dialog, empty title is rejected with a visible message.
+
+- [ ] **[B5-03] File pickers for cover and audio**
+  - **Files:** `ui/SongDialogController.java`
+  - **Objective:** Two `FileChooser` buttons storing **absolute paths**. Audio files are never
+    copied into `resources/`.
+  - **Verification:** `mvn javafx:run`, pick a file, the absolute path appears in the field.
+
+- [ ] **[B5-04] Wire Add / Edit / Delete from the main view**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
+  - **Objective:** Three toolbar buttons. Add opens an empty dialog then `player.addSong`; Edit
+    opens the selected row then `player.updateSong`; Delete calls `player.removeSong`. Edit and
+    Delete are disabled when nothing is selected.
+  - **Verification:** `mvn javafx:run`, add a song — it appears in the table immediately.
+
+- [ ] **[B5-05] Rating control (0–100)**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** A `Slider` (0–100, snap to 5) in the now-playing bar calling
+    `player.rate(current, value)` and refreshing the row.
+  - **Verification:** `mvn javafx:run`, drag the slider, the table's Rating cell follows.
+
+### B6 — Visual design (10% of the grade)
+
+- [ ] **[B6-01] Design tokens and base theme in `app.css`**
+  - **Files:** `resources/com/discoballplayer/css/app.css`
+  - **Objective:** Define the palette as CSS `-fx-` looked-up colours in `.root`, then style
+    backgrounds, typography and spacing. Every later rule references a token, never a raw hex.
+  - **Verification:** `mvn javafx:run` — no unstyled default-grey panels.
+
+- [ ] **[B6-02] Table, button and slider styling**
+  - **Files:** `resources/com/discoballplayer/css/app.css`
+  - **Objective:** Row hover and selection states, a distinct primary style for Play, a visibly
+    dimmed `:disabled` state (Previous in Arrival mode must *read* as disabled).
+  - **Verification:** `mvn javafx:run` — hover, selection and disabled states are all distinguishable.
+
+- [ ] **[B6-03] [BONUS] Dark theme and toggle**
+  - **Files:** `resources/com/discoballplayer/css/dark.css`, `ui/MainController.java`
+  - **Objective:** `dark.css` overrides only the token block. A toolbar toggle swaps the
+    stylesheet on the scene at runtime.
+  - **Verification:** `mvn javafx:run`, click the toggle, the whole window re-themes with no relayout.
+
+- [ ] **[B6-04] [BONUS] Keyboard shortcuts**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Space = play/pause, ←/→ = previous/next, `Ctrl+F` focuses search,
+    `Ctrl+N` opens the add dialog. Registered on the scene, not on individual buttons.
+  - **Verification:** `mvn javafx:run`, press Space, playback toggles.
+
+---
+
+## 6. Phase C — Integration and defense material (both tracks, sequential)
+
+Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
+
+- [ ] **[C-01] Swap `DemoPlayerService` for the real `Player`**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Construct `new Player(library, new SimulatedAudioEngine())` instead of the demo
+    stub. If `B1-02` was done right this is a one-line change plus its imports.
+  - **Verification:** `mvn javafx:run`, all three modes navigate real songs from the library.
+
+- [ ] **[C-02] Load and save the library on startup and shutdown**
+  - **Files:** `Main.java`
+  - **Objective:** Build a `JsonLibraryRepository`, load into `MusicLibrary` at startup, save on
+    `stop()`. First run with no file starts empty rather than crashing.
+  - **Verification:** `mvn javafx:run`, add a song, close, reopen — the song is still there.
+
+- [ ] **[C-03] Seed data for the demo**
+  - **Files:** `util/SampleLibrary.java`
+  - **Objective:** ~20 songs across ≥5 genres and ≥3 albums, loaded only when the repository comes
+    back empty, so the defense never opens on a blank window.
+  - **Verification:** `mvn javafx:run` with no `library.json` shows 20 songs.
+
+- [ ] **[C-04] Full-suite green run**
+  - **Files:** none (fix-forward only)
+  - **Objective:** `mvn clean test` with every suite passing and no skipped tests.
+  - **Verification:** `mvn clean test` — `Failures: 0, Errors: 0, Skipped: 0`.
+
+- [ ] **[C-05] Align `README.md` with the locked names**
+  - **Files:** `README.md`
+  - **Objective:** `BinarySearchTree` → `BST` in the modes table and the layout tree; add
+    `service/PlayerService` to the architecture diagram; point at `docs/plan.md`.
+  - **Verification:** `grep -c BinarySearchTree README.md` returns `0`.
+
+- [ ] **[C-06] Class diagram**
+  - **Files:** `docs/diagrams/class-diagram.md`
+  - **Objective:** A Mermaid `classDiagram` covering `model`, `structures`, `playback`, `service`,
+    `repository` and the arrows between layers.
+  - **Verification:** the fenced block renders on GitHub.
+
+- [ ] **[C-07] Complexity table for the defense**
+  - **Files:** `docs/complexity.md`
+  - **Objective:** Insertion, deletion, search and traversal, average and worst case, for all
+    three structures, each row justified in one sentence.
+  - **Verification:** nine populated rows, every cell justified.
+
+- [ ] **[C-08] Rubric self-audit**
+  - **Files:** `docs/rubric-check.md`
+  - **Objective:** One row per rubric criterion with the files and tests that satisfy it, plus an
+    explicit `grep` proving no `java.util` collection is used as a playback structure.
+  - **Verification:** `grep -rn "java.util.\(List\|Queue\|Deque\|TreeMap\|TreeSet\)" src/main/java/com/discoballplayer/structures/`
+    returns nothing.
+
+---
+
+## 7. `CLAUDE.md` content for [F0-01]
+
+Write the block below to `CLAUDE.md` at the repository root, verbatim.
+
+````markdown
+# DiscoBallPlayer
+
+Desktop music player for the **Languages and Compilers** course at Universidad EIA.
+The point is **not** a commercial music player. It is to implement three data structures by
+hand and prove that playback behaviour changes with the structure backing it. Every member
+must be able to defend, orally, why a structure was chosen, how it works internally, and its
+complexity for insertion, deletion, search and traversal.
+
+## Working with `docs/plan.md`
+
+`docs/plan.md` is the single source of truth for what is done and what is next.
+
+1. Read it before starting any work. Pick the lowest-numbered unticked ticket in **your track**.
+2. Do exactly one ticket per branch and per pull request. Never batch tickets.
+3. Tick the box (`- [ ]` → `- [x]`) **in the same PR as the work**, only after the ticket's
+   verification command passes.
+4. Never edit a ticket owned by the other track, and never edit a file the ownership table
+   assigns to the other track. Append to "Cross-track requests" at the bottom of the plan instead.
+5. Scope discovered mid-ticket goes in as a **new ticket**; it does not get folded into the
+   current one.
+
+## Commands
+
+```bash
+mvn clean compile                       # compile
+mvn test                                # full test suite
+mvn test -Dtest=BSTTest                 # one test class
+mvn test -Dtest=BSTTest#deleteLeafNode  # one test method
+mvn javafx:run                          # launch the application
+mvn clean package                       # build the jar
+```
+
+## Ground rules
+
+1. **Everything in the repo is in English.** Code, identifiers, comments, Javadoc, commits,
+   branches, PR titles, docs. No Spanish.
+2. **The three structures are hand-written and generic.** No `java.util.LinkedList`, `Queue`,
+   `Deque`, `TreeMap`, `TreeSet` or `Collections.sort` inside `structures` or `playback`.
+   `ArrayList` is allowed only in `ui` and in `model` as entity storage — never as a playback
+   structure.
+3. **The UI never touches a data structure.** It talks to `PlayerService` only. A `ui` class
+   importing from `structures` is a bug.
+4. **`AlphabeticalMode` never flattens the tree into a list.** Navigation goes through
+   in-order successor/predecessor with parent pointers. This is the first thing the professor
+   looks for.
+5. **No direct commits to `main` or `develop`.** Every change arrives by PR from a
+   `feature/` or `fix/` branch.
+6. Ask before adding a dependency. The list in `pom.xml` is the whole list.
+
+## Tech stack
+
+Java 21 · JavaFX 21 (FXML + CSS) · Maven (`javafx-maven-plugin`) · JUnit 5 · Jackson Databind ·
+`javafx.media` for bonus audio. Nothing else without discussion.
+
+## Architecture
+
+```
+JavaFX UI  →  PlayerService  →  PlaybackMode  →  three hand-written structures
+                    ↓
+              MusicLibrary  →  LibraryRepository (JSON)
+```
+
+`MusicLibrary` is the single source of truth for the catalogue. Each playback mode **builds its
+own structure** from the library on `load()`, which is why `ArrivalMode` can consume its queue
+without destroying the catalogue, and why adding a song does not mean keeping three structures
+in sync by hand.
+
+`PlayerService` is the seam between the tracks: the UI compiles against the interface, so it
+can run on `DemoPlayerService` while the real `Player` is still being written.
+
+| Mode | Structure | Behaviour |
+|---|---|---|
+| Shuffle | `DoublyCircularLinkedList<Song>` | Order randomized once on activation; wraps infinitely both ways |
+| Arrival | `SimpleQueue<Song>` | Strict FIFO; a played song leaves the queue; Previous is disabled |
+| Alphabetical | `BST<Song>` | In-order navigation by title via successor/predecessor |
+
+## Track ownership
+
+| Track | Owns |
+|---|---|
+| A (backend) | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/` (except the demo), `module-info.java`, all of `src/test/` |
+| B (UI) | `ui/`, `fxml/`, `css/`, `images/`, `service/DemoPlayerService.java` |
+
+`module-info.java` was finalized in `F0-09` and is not edited again.
+
+## Java practices
+
+- Fields `private`; expose behaviour, not state. `final` on anything set once.
+- Validate at the boundary: rating is 0–100 inclusive, `Genre` is an enum.
+- Custom exceptions over `null` returns. A structure never returns `null` for "empty" — it
+  throws `EmptyStructureException`.
+- **Javadoc on every public method of `structures`, stating complexity:**
+  `@implNote Time complexity: O(log n) average, O(n) worst case.` These are the defense script.
+- Descriptive English names: `inOrderSuccessor`, not `sig` or `nodo2`.
+- `equals` and `hashCode` together, always.
+- No `System.out.println` in committed code.
+- No business logic in FXML controllers. A controller reads input, calls `PlayerService`,
+  updates widgets. If it decides anything about playback order, it is in the wrong layer.
+- Every `PlaybackListener` callback body in the UI runs inside `Platform.runLater`.
+
+## Testing
+
+Tests live in `src/test/java` mirroring the main packages. Structures carry 35% of the grade,
+so they carry the tests. Minimum before a structure PR merges:
+
+- **`DoublyCircularLinkedList`** — insert into empty; wrap forward and backward; delete head,
+  tail, middle and only element; size correct throughout.
+- **`SimpleQueue`** — FIFO across many enqueues; dequeue on empty throws; peek does not remove.
+- **`BST`** — in-order returns sorted; delete leaf / one child / two children; successor and
+  predecessor at both boundaries; duplicate titles both survive.
+- **Modes** — `ArrivalMode.hasPrevious()` always false; `ShuffleMode` next-then-previous returns
+  the same song; `AlphabeticalMode` visits in title order.
+
+## Git workflow
+
+GitFlow. `main` and `develop` are long-lived; everything else is deleted after merge.
+Branch names are lowercase English with the ticket code: `feature/a1-03-simple-queue`.
+
+```bash
+git checkout develop && git pull origin develop
+git checkout -b feature/a1-03-simple-queue
+# work in small commits
+mvn test
+git push -u origin feature/a1-03-simple-queue   # then open a PR into develop
+```
+
+Never force-push `main` or `develop`. Rebase `develop` into your branch to resolve conflicts on
+your side. `mvn test` must pass before the PR is opened — a red `develop` blocks both tracks.
+
+Conventional Commits, English, imperative, subject under 72 characters:
+
+```
+feat(structures): add generic simple queue
+fix(playback): keep previous() consistent after shuffle reload
+test(structures): cover BST deletion with two children
+```
+
+Scopes: `model`, `structures`, `playback`, `service`, `repository`, `ui`, `util`, `build`, `docs`.
+
+### PR description template
+
+```markdown
+## What
+One or two sentences.
+
+## Why
+Which plan ticket and rubric item this covers.
+
+## How to verify
+The ticket's verification command.
+
+## Checklist
+- [ ] `mvn test` passes
+- [ ] No java.util collection used as a playback structure
+- [ ] Javadoc with complexity on new public structure methods
+- [ ] The ticket box is ticked in docs/plan.md
+- [ ] No Spanish in code or comments
+```
+
+## Grading rubric
+
+| Criterion | Weight | Where it lives |
+|---|---|---|
+| Data structures work correctly | 35% | `structures/` + tests |
+| Graphical interface implemented | 20% | `ui/`, `fxml/` |
+| Code quality (OOP, organization) | 15% | Everywhere |
+| Three playback modes fulfilled | 15% | `playback/` |
+| Interface design and UX | 10% | `css/`, layout |
+| Creativity and extras | 5% | Bonus tickets |
+````
+
+---
+
+## 8. Cross-track requests
+
+Append here when you need something from a file the other track owns. Format:
+`- [ ] (from Track X to Track Y) <what and why>`.
+
+- _(empty)_
