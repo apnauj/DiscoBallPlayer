@@ -209,20 +209,20 @@ Runs in parallel with Track B. Never opens an FXML file.
     remove, `size` tracks both operations, drain-then-refill works.
   - **Verification:** `mvn test -Dtest=SimpleQueueTest` — all green.
 
-- [ ] **[A1-05] Clean up the `BST` public API**
+- [x] **[A1-05] Clean up the `BST` public API**
   - **Files:** `structures/BST.java`
   - **Objective:** `F0-02` already deleted the `Node`-returning `search` and made `Node` private.
     What remains: add `boolean contains(T value)`, `T find(T value)` and `size()`.
   - **Verification:** `mvn test -Dtest=BSTTest#containsFindsInsertedValue`
 
-- [ ] **[A1-06] Maintain `parent` pointers through insert and delete in `BST`**
+- [x] **[A1-06] Maintain `parent` pointers through insert and delete in `BST`**
   - **Files:** `structures/BST.java`
   - **Objective:** `F0-02` rewired `parent` through `insert` and `delete` while fixing the
     rewrite. This ticket is now the **proof**: write the test that would have caught the
     dangling pointers, and fix whatever it finds. Do not assume `F0-02` got every case right.
   - **Verification:** `mvn test -Dtest=BSTTest#parentPointersStayConsistentAfterDeletes`
 
-- [ ] **[A1-07] In-order successor / predecessor and a bidirectional cursor on `BST`**
+- [x] **[A1-07] In-order successor / predecessor and a bidirectional cursor on `BST`**
   - **Files:** `structures/BST.java`
   - **Objective:** `successor(node)` / `predecessor(node)` via parent pointers, plus a public
     `Cursor` (`current`, `next`, `previous`, `hasNext`, `hasPrevious`) starting at the minimum.
@@ -230,14 +230,14 @@ Runs in parallel with Track B. Never opens an FXML file.
     `Collections.sort` anywhere in this file. This is the single most-inspected rule at defense.
   - **Verification:** `mvn test -Dtest=BSTTest#cursorWalksInOrderBothDirections`
 
-- [ ] **[A1-08] Test suite for `BST` — traversal and boundaries**
+- [x] **[A1-08] Test suite for `BST` — traversal and boundaries**
   - **Files:** `src/test/java/com/discoballplayer/structures/BSTTest.java`
   - **Objective:** In-order walk returns sorted order; first element has no predecessor; last
     has no successor; duplicate titles by different artists both survive (`Song.compareTo`
     breaks ties on `id`).
   - **Verification:** `mvn test -Dtest=BSTTest` — all green.
 
-- [ ] **[A1-09] Test suite for `BST` — deletion cases**
+- [x] **[A1-09] Test suite for `BST` — deletion cases**
   - **Files:** `src/test/java/com/discoballplayer/structures/BSTTest.java` (append)
   - **Objective:** Delete a leaf, a node with one child, a node with two children, and the root;
     in-order order stays sorted after each; `size` decrements correctly.
