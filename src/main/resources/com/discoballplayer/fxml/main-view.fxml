@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.ProgressBar?>
@@ -35,6 +38,17 @@
 
             <VBox fx:id="modeSelectorBox" styleClass="sidebar-section" spacing="8">
                 <Label text="PLAYBACK MODE" styleClass="section-title"/>
+
+                <fx:define>
+                    <ToggleGroup fx:id="modeGroup"/>
+                </fx:define>
+
+                <RadioButton fx:id="shuffleModeButton" text="Shuffle" toggleGroup="$modeGroup"
+                             onAction="#onShuffleMode" styleClass="mode-option"/>
+                <RadioButton fx:id="arrivalModeButton" text="Arrival order" toggleGroup="$modeGroup"
+                             onAction="#onArrivalMode" styleClass="mode-option"/>
+                <RadioButton fx:id="alphabeticalModeButton" text="Alphabetical" toggleGroup="$modeGroup"
+                             onAction="#onAlphabeticalMode" styleClass="mode-option"/>
             </VBox>
 
             <VBox fx:id="filterBox" styleClass="sidebar-section" spacing="8">
@@ -89,6 +103,15 @@
                 <Label fx:id="nowPlayingTitle" styleClass="now-playing-title" text="Nothing playing"/>
                 <Label fx:id="nowPlayingArtist" styleClass="now-playing-artist" text="Pick a song to begin"/>
             </VBox>
+
+            <HBox alignment="CENTER" spacing="8" styleClass="transport">
+                <Button fx:id="previousButton" text="Previous" onAction="#onPrevious"
+                        styleClass="transport-button"/>
+                <Button fx:id="playPauseButton" text="Play" onAction="#onPlayPause"
+                        styleClass="transport-button, primary-button" minWidth="90"/>
+                <Button fx:id="nextButton" text="Next" onAction="#onNext"
+                        styleClass="transport-button"/>
+            </HBox>
 
             <VBox HBox.hgrow="ALWAYS" alignment="CENTER" spacing="6">
                 <ProgressBar fx:id="progressBar" progress="0" maxWidth="Infinity"/>

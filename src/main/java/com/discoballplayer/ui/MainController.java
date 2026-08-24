@@ -4,8 +4,13 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 
+import com.discoballplayer.exception.EmptyStructureException;
 import com.discoballplayer.model.Album;
 import com.discoballplayer.model.Song;
+import com.discoballplayer.playback.AlphabeticalMode;
+import com.discoballplayer.playback.ArrivalMode;
+import com.discoballplayer.playback.PlaybackMode;
+import com.discoballplayer.playback.ShuffleMode;
 import com.discoballplayer.service.DemoPlayerService;
 import com.discoballplayer.service.PlaybackListener;
 import com.discoballplayer.service.PlayerService;
@@ -16,8 +21,10 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -44,6 +51,11 @@ public class MainController implements PlaybackListener {
 
     private static final String NO_SONG_TITLE = "Nothing playing";
     private static final String NO_SONG_ARTIST = "Pick a song to begin";
+
+    private static final String PLAY = "Play";
+    private static final String PAUSE = "Pause";
+    private static final String QUEUE_FINISHED = "Queue finished";
+    private static final String NO_SONG_LOADED = "No song loaded";
 
     /** The single line that ticket {@code C-01} swaps for the real {@code Player}. */
     private final PlayerService player = new DemoPlayerService();
@@ -99,6 +111,24 @@ public class MainController implements PlaybackListener {
     @FXML
     private Label totalLabel;
 
+    @FXML
+    private Button previousButton;
+
+    @FXML
+    private Button playPauseButton;
+
+    @FXML
+    private Button nextButton;
+
+    @FXML
+    private RadioButton shuffleModeButton;
+
+    @FXML
+    private RadioButton arrivalModeButton;
+
+    @FXML
+    private RadioButton alphabeticalModeButton;
+
     /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
@@ -110,7 +140,9 @@ public class MainController implements PlaybackListener {
         player.addListener(this);
         showMatches(searchField.getText());
         clearNowPlaying();
-        statusLabel.setText("No song loaded");
+        statusLabel.setText(NO_SONG_LOADED);
+        shuffleModeButton.setSelected(true);
+        selectMode(new ShuffleMode());
     }
 
     /**
@@ -226,16 +258,93 @@ public class MainController implements PlaybackListener {
         return (resource == null) ? null : new Image(resource.toExternalForm(), false);
     }
 
+    // ---- transport -------------------------------------------------------
+
+    @FXML
+    private void onPrevious() {
+        player.previous();
+        refreshTransport();
+    }
+
+    @FXML
+    private void onNext() {
+        try {
+            player.next();
+            statusLabel.setText("");
+        } catch (EmptyStructureException exhausted) {
+            // Arrival order consumes its queue, so running out is ordinary, not a defect.
+            // Letting it reach the FX event loop would print a stack trace at the demo.
+            statusLabel.setText(QUEUE_FINISHED);
+        }
+        refreshTransport();
+    }
+
+    @FXML
+    private void onPlayPause() {
+        if (player.isPlaying()) {
+            player.pause();
+        } else {
+            player.play();
+        }
+        refreshTransport();
+    }
+
+    /**
+     * Re-reads the service's own answer about what is navigable.
+     *
+     * <p>The Previous button is disabled from {@link PlayerService#hasPrevious()} rather than
+     * from a check on which mode is selected, so a mode that cannot go back disables it by
+     * saying so, and the UI never encodes a rule that belongs to the playback layer.</p>
+     *
+     * <p>Next is deliberately left enabled on an exhausted queue. Disabling it too would be
+     * tidier, but it would also make the finished-queue message unreachable: the press that
+     * runs off the end is the one that reports it.</p>
+     */
+    private void refreshTransport() {
+        previousButton.setDisable(!player.hasPrevious());
+    }
+
+    // ---- mode selection --------------------------------------------------
+
+    @FXML
+    private void onShuffleMode() {
+        selectMode(new ShuffleMode());
+    }
+
+    @FXML
+    private void onArrivalMode() {
+        selectMode(new ArrivalMode());
+    }
+
+    @FXML
+    private void onAlphabeticalMode() {
+        selectMode(new AlphabeticalMode());
+    }
+
+    private void selectMode(PlaybackMode mode) {
+        player.setMode(mode);
+        clearNowPlaying();
+        statusLabel.setText(NO_SONG_LOADED);
+        refreshTransport();
+    }
+
     // ---- playback events -------------------------------------------------
 
     @Override
     public void onSongChanged(Song song) {
-        Platform.runLater(() -> renderNowPlaying(song));
+        Platform.runLater(() -> {
+            renderNowPlaying(song);
+            refreshTransport();
+        });
     }
 
+    /**
+     * The button label follows the service, never a boolean kept here: anything that starts or
+     * stops playback without going through the button still leaves the label truthful.
+     */
     @Override
     public void onPlaybackStateChanged(boolean playing) {
-        // The Play/Pause label follows this event from B4-02.
+        Platform.runLater(() -> playPauseButton.setText(playing ? PAUSE : PLAY));
     }
 
     @Override
