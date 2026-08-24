@@ -608,7 +608,7 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
 
-- [ ] **[C-01] Accept an injected `PlayerService` in `MainController`** *(Track B)*
+- [x] **[C-01] Accept an injected `PlayerService` in `MainController`** *(Track B)*
   - **Files:** `ui/MainController.java`
   - **Objective:** Replace the inline `new DemoPlayerService()` with a constructor parameter,
     keeping a no-argument constructor that supplies the demo stub so the FXML still loads
@@ -852,10 +852,16 @@ The ticket's verification command.
 Append here when you need something from a file the other track owns. Format:
 `- [ ] (from Track X to Track Y) <what and why>`.
 
-- [ ] (from Track A to Track B) `C-01` was rewritten. Do **not** construct a `Player` inside
+- [x] (from Track A to Track B) `C-01` was rewritten. Do **not** construct a `Player` inside
   `MainController`. Add a constructor taking a `PlayerService`, keep the no-argument one
   delegating to `DemoPlayerService`, and let `Main` compose the real graph in `C-02`. Two
   `MusicLibrary` instances would silently discard everything the user saved.
+  **Done.** `MainController(PlayerService)` is the injected constructor and the no-argument one
+  delegates to `DemoPlayerService`, so `FXMLLoader` and Scene Builder still load the view
+  standalone. `ControllerInjectionTest` asserts the view shows the injected library and that an
+  edit reaches it; reverting to a self-built service fails it with "the view is showing a
+  catalogue nobody injected". `C-02` is unblocked — compose through
+  `FXMLLoader.setControllerFactory`.
 
 - [x] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
   The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership

@@ -73,8 +73,36 @@ public class MainController implements PlaybackListener {
     private static final String QUEUE_FINISHED = "Queue finished";
     private static final String NO_SONG_LOADED = "No song loaded";
 
-    /** The single line that ticket {@code C-01} swaps for the real {@code Player}. */
-    private final PlayerService player = new DemoPlayerService();
+    /**
+     * The seam. Injected, never constructed here.
+     *
+     * <p>Building a {@code Player} inside this class would give the controller its own
+     * {@link com.discoballplayer.model.MusicLibrary} while {@code Main} loads a different one
+     * from disk. Nothing would throw — the app would simply show one catalogue, save another,
+     * and lose every edit on restart. Composition belongs in {@code Main}.</p>
+     */
+    private final PlayerService player;
+
+    /**
+     * Runs the view on the in-memory stub.
+     *
+     * <p>This is the constructor {@code FXMLLoader} calls when nobody supplies a controller
+     * factory, which keeps {@code song-dialog.fxml} and {@code main-view.fxml} loadable
+     * standalone — in Scene Builder, and in the UI tests.</p>
+     */
+    public MainController() {
+        this(new DemoPlayerService());
+    }
+
+    /**
+     * Runs the view on the service it is given.
+     *
+     * <p>{@code Main} passes the real {@code Player} through
+     * {@code FXMLLoader.setControllerFactory}.</p>
+     */
+    public MainController(PlayerService player) {
+        this.player = Objects.requireNonNull(player, "A view without a service has nothing to show.");
+    }
 
     /** Decoded once: the fallback is reached often and re-reading it per song would show. */
     private Image defaultCover;
