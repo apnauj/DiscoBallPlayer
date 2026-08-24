@@ -413,7 +413,7 @@ background timer thread and touching a node off the FX thread throws at runtime.
     no controls yet.
   - **Verification:** `mvn javafx:run` opens a window with three visibly distinct regions.
 
-- [ ] **[B1-02] `MainController` holds a `PlayerService`**
+- [x] **[B1-02] `MainController` holds a `PlayerService`**
   - **Files:** `ui/MainController.java`
   - **Objective:** Field `private PlayerService player = new DemoPlayerService();` (one line to
     swap in `C-01`), plus `initialize()` registering the controller as a `PlaybackListener`.
