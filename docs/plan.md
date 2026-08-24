@@ -608,19 +608,30 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
 
-- [ ] **[C-01] Swap `DemoPlayerService` for the real `Player`**
+- [ ] **[C-01] Accept an injected `PlayerService` in `MainController`** *(Track B)*
   - **Files:** `ui/MainController.java`
-  - **Objective:** Construct `new Player(library, new SimulatedAudioEngine())` instead of the demo
-    stub. If `B1-02` was done right this is a one-line change plus its imports.
-  - **Verification:** `mvn javafx:run`, all three modes navigate real songs from the library.
+  - **Objective:** Replace the inline `new DemoPlayerService()` with a constructor parameter,
+    keeping a no-argument constructor that supplies the demo stub so the FXML still loads
+    standalone in Scene Builder and in the UI tests.
+  - **Why it changed:** the ticket used to say "construct the real `Player` here". That would
+    have given the controller its own `MusicLibrary` while `C-02` loaded a different one from
+    disk — the saved library would never reach the UI and edits would never be saved. Nothing
+    would throw; the app would just silently lose everything on restart. Composition belongs
+    in `Main`, which is `C-02`.
+  - **Verification:** `mvn javafx:run` still opens on demo data; `new MainController(service)`
+    compiles.
 
-- [ ] **[C-02] Load and save the library on startup and shutdown**
+- [ ] **[C-02] Compose the object graph in `Main`** *(Track A, needs `C-01`)*
   - **Files:** `Main.java`
-  - **Objective:** Build a `JsonLibraryRepository`, load into `MusicLibrary` at startup, save on
-    `stop()`. First run with no file starts empty rather than crashing.
+  - **Objective:** Build `JsonLibraryRepository` → `MusicLibrary` (seeded from `SampleLibrary`
+    when empty) → `SimulatedAudioEngine` → `Player`, inject it through
+    `FXMLLoader.setControllerFactory`, and on `stop()` save the library and call
+    `Player.dispose()` to release the ticker thread.
+  - **One library instance only.** The controller must never construct its own; that is the
+    whole point of `C-01`.
   - **Verification:** `mvn javafx:run`, add a song, close, reopen — the song is still there.
 
-- [ ] **[C-03] Seed data for the demo**
+- [x] **[C-03] Seed data for the demo**
   - **Files:** `util/SampleLibrary.java`
   - **Objective:** ~20 songs across ≥5 genres and ≥3 albums, loaded only when the repository comes
     back empty, so the defense never opens on a blank window.
@@ -840,6 +851,11 @@ The ticket's verification command.
 
 Append here when you need something from a file the other track owns. Format:
 `- [ ] (from Track X to Track Y) <what and why>`.
+
+- [ ] (from Track A to Track B) `C-01` was rewritten. Do **not** construct a `Player` inside
+  `MainController`. Add a constructor taking a `PlayerService`, keep the no-argument one
+  delegating to `DemoPlayerService`, and let `Main` compose the real graph in `C-02`. Two
+  `MusicLibrary` instances would silently discard everything the user saved.
 
 - [x] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
   The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership
