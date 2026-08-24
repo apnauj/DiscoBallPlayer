@@ -1,113 +1,110 @@
-package main.java.com.discoballplayer.structures;
+package com.discoballplayer.structures;
 
-public class BST <T extends Comparable<T>> {
+/**
+ * Hand-written binary search tree ordered by the natural ordering of {@code T}.
+ *
+ * <p>Nodes keep a {@code parent} reference. That is not decoration: in-order successor and
+ * predecessor are computed by walking up through it, which is what lets
+ * {@code AlphabeticalMode} step forward and backward without ever flattening the tree
+ * into a list.</p>
+ *
+ * <p>Duplicates are rejected. {@code Song.compareTo} breaks ties on the generated id, so two
+ * songs sharing a title are still two distinct nodes.</p>
+ */
+public class BST<T extends Comparable<T>> {
 
-    private static class Node<T extends Comparable<T>>{
+    private static class Node<T extends Comparable<T>> {
         T value;
-        Node<T> left, rigth, parent;
-        public Node(T value, Node<T> parent){
+        Node<T> left, right, parent;
+
+        Node(T value, Node<T> parent) {
             this.value = value;
             this.parent = parent;
         }
     }
 
-    Node<T> root;
+    private Node<T> root;
 
-    public void insert(T value){
-
-        root = insertr(root, value, null);
+    /**
+     * Inserts a value, ignoring it if an equal value is already present.
+     *
+     * @implNote Time complexity: O(log n) average, O(n) worst case.
+     */
+    public void insert(T value) {
+        root = insertRecursive(root, value, null);
     }
 
-    private Node<T> insertr(Node<T> current, T value, Node<T> parent){
-        if(current == null){
-            return new Node<>(value,parent);
+    private Node<T> insertRecursive(Node<T> current, T value, Node<T> parent) {
+        if (current == null) {
+            return new Node<>(value, parent);
         }
 
-        else if (value.compareTo(current.value) < 0){
-            current.left = insertr(current.rigth, value, current);
-        }
-
-        else if (value.compareTo(current.value) > 0){
-            current.rigth = insertr(current.rigth, value, current);
+        int comparison = value.compareTo(current.value);
+        if (comparison < 0) {
+            current.left = insertRecursive(current.left, value, current);
+        } else if (comparison > 0) {
+            current.right = insertRecursive(current.right, value, current);
         }
 
         return current;
-
     }
 
+    /**
+     * @implNote Time complexity: O(1).
+     */
     public boolean isEmpty() {
         return root == null;
     }
 
-
-    public Node<T> search(T value){
-        return searchr(this.root, value);
+    /**
+     * @implNote Time complexity: O(log n) average, O(n) worst case.
+     */
+    public void delete(T value) {
+        root = deleteRecursive(root, value);
+        if (root != null) {
+            root.parent = null;
+        }
     }
 
-
-    private Node<T> searchr(Node<T> current, T value){
-        if(current == null){
-            return null;
-
-        }
-
-        if(value.compareTo(current.value)<0){
-            return searchr(current.left, value);
-        }
-
-        else if (value.compareTo(current.value) > 0){
-            return searchr(current.rigth, value);
-        }
-
-        return current;
-    }
-
-    public void delete(T value){
-        root = deleter(root, value);
-    }
-
-    private Node<T> deleter(Node<T> current, T value){
-
-        if(current == null){
+    private Node<T> deleteRecursive(Node<T> current, T value) {
+        if (current == null) {
             return null;
         }
 
-        if(value.compareTo(current.value) < 0){
-            current.left = deleter(current.left, value);
-        }
-
-        else if (value.compareTo(current.value) > 0){
-            current.rigth = deleter(current.rigth, value);
-        }
-
-        else{
-            if(current.left == null){
-                return current.rigth;
+        int comparison = value.compareTo(current.value);
+        if (comparison < 0) {
+            current.left = deleteRecursive(current.left, value);
+            if (current.left != null) {
+                current.left.parent = current;
             }
-
-            if (current.rigth == null){
+        } else if (comparison > 0) {
+            current.right = deleteRecursive(current.right, value);
+            if (current.right != null) {
+                current.right.parent = current;
+            }
+        } else {
+            if (current.left == null) {
+                return current.right;
+            }
+            if (current.right == null) {
                 return current.left;
             }
 
-            T succesor = findMinimun(current.rigth);
-
-            current.value = succesor;
-
-            current.rigth = findMinimun(current.rigth, succesor);
-
-
+            T successor = findMinimum(current.right);
+            current.value = successor;
+            current.right = deleteRecursive(current.right, successor);
+            if (current.right != null) {
+                current.right.parent = current;
+            }
         }
 
         return current;
     }
 
-
-    private T findMinimun(Node<T> node){
-        while(node.left != null ){
+    private T findMinimum(Node<T> node) {
+        while (node.left != null) {
             node = node.left;
         }
         return node.value;
     }
-
-
 }
