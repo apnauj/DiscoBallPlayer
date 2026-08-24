@@ -398,7 +398,7 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B1 — Application shell
 
-- [ ] **[B1-01] Three-region layout in `main-view.fxml`**
+- [x] **[B1-01] Three-region layout in `main-view.fxml`**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
   - **Objective:** Replace the placeholder with a `BorderPane`: left sidebar (mode selector,
     filters), centre (library table), bottom (now-playing bar). Empty containers with `fx:id`s;

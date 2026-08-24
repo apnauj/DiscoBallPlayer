@@ -1,23 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <!--
-    Phase 1 placeholder: just enough for `mvn javafx:run` to open a window.
-    The real library table, current-song panel and transport controls arrive in Phase 3.
+    Application shell: the three regions every later Track B ticket fills in.
+
+      left    sidebar        mode selector (B4-03) and filters
+      center  library        the song table (B2-01)
+      bottom  now playing    cover, metadata, progress and transport (B3, B4)
+
+    The containers are deliberately empty. Only the fx:ids and the region chrome live here,
+    so that adding a control later is a change in one place and never a re-layout.
 -->
-<BorderPane xmlns="http://javafx.com/javafx"
+<BorderPane fx:id="rootPane"
+            xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.discoballplayer.ui.MainController"
             styleClass="root-pane">
 
-    <center>
-        <VBox alignment="CENTER" spacing="12" styleClass="placeholder-panel">
-            <Label text="DiscoBallPlayer" styleClass="app-title"/>
-            <Label fx:id="statusLabel" styleClass="app-subtitle"/>
+    <left>
+        <VBox fx:id="sidebar" styleClass="sidebar" spacing="24" minWidth="200" prefWidth="220">
+            <padding>
+                <Insets top="20" right="18" bottom="20" left="18"/>
+            </padding>
+
+            <Label text="DiscoBallPlayer" styleClass="brand-title"/>
+
+            <VBox fx:id="modeSelectorBox" styleClass="sidebar-section" spacing="8">
+                <Label text="PLAYBACK MODE" styleClass="section-title"/>
+            </VBox>
+
+            <VBox fx:id="filterBox" styleClass="sidebar-section" spacing="8">
+                <Label text="FILTERS" styleClass="section-title"/>
+            </VBox>
         </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="libraryContainer" styleClass="library-region">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+        </StackPane>
     </center>
+
+    <bottom>
+        <HBox fx:id="nowPlayingBar" styleClass="now-playing-bar"
+              alignment="CENTER_LEFT" spacing="16" minHeight="96">
+            <padding>
+                <Insets top="16" right="20" bottom="16" left="20"/>
+            </padding>
+
+            <Label fx:id="statusLabel" styleClass="status-label"/>
+        </HBox>
+    </bottom>
 
 </BorderPane>
