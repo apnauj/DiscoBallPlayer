@@ -196,14 +196,14 @@ Runs in parallel with Track B. Never opens an FXML file.
     delete of head / tail / middle / only element, `size` after each, `has` on absent element.
   - **Verification:** `mvn test -Dtest=DoublyCircularLinkedListTest` — all green.
 
-- [ ] **[A1-03] Implement `SimpleQueue<T>`**
+- [x] **[A1-03] Implement `SimpleQueue<T>`**
   - **Files:** `structures/SimpleQueue.java`
   - **Objective:** Hand-written FIFO with head/tail node references. API: `enqueue`, `dequeue`,
     `peek`, `isEmpty`, `size`. `dequeue`/`peek` on empty throw `EmptyStructureException`.
   - **Constraint:** no `java.util` collection inside. Javadoc states O(1) for every operation.
   - **Verification:** `mvn test -Dtest=SimpleQueueTest#preservesFifoOrder`
 
-- [ ] **[A1-04] Test suite for `SimpleQueue`**
+- [x] **[A1-04] Test suite for `SimpleQueue`**
   - **Files:** `src/test/java/com/discoballplayer/structures/SimpleQueueTest.java`
   - **Objective:** FIFO order over ≥10 enqueues, `dequeue` on empty throws, `peek` does not
     remove, `size` tracks both operations, drain-then-refill works.
