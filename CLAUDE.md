@@ -81,8 +81,8 @@ can run on `DemoPlayerService` while the real `Player` is still being written.
 
 | Track | Owns |
 |---|---|
-| A (backend) | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/` (except the demo), `module-info.java`, all of `src/test/` |
-| B (UI) | `ui/`, `fxml/`, `css/`, `images/`, `service/DemoPlayerService.java` |
+| A (backend) | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/` (except the demo), `module-info.java`, `src/test/` except `src/test/java/com/discoballplayer/ui/` |
+| B (UI) | `ui/`, `fxml/`, `css/`, `images/`, `service/DemoPlayerService.java`, `src/test/java/com/discoballplayer/ui/` |
 
 `module-info.java` was finalized in `F0-09` and is not edited again.
 

@@ -62,8 +62,8 @@ file and keep working on something else.
 
 | Owner | Owns exclusively |
 |---|---|
-| **Track A** | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/Player.java`, `service/*.java` interfaces, `module-info.java`, all of `src/test/` |
-| **Track B** | `ui/`, `resources/**/fxml/`, `resources/**/css/`, `resources/**/images/`, `service/DemoPlayerService.java` |
+| **Track A** | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/Player.java`, `service/*.java` interfaces, `module-info.java`, `src/test/` **except** `src/test/java/com/discoballplayer/ui/` |
+| **Track B** | `ui/`, `resources/**/fxml/`, `resources/**/css/`, `resources/**/images/`, `service/DemoPlayerService.java`, `src/test/java/com/discoballplayer/ui/` |
 | **Shared, Phase 0 only** | Everything created in `F0-*`. After Phase 0 ends, Phase 0 files fall under the ownership table above. |
 
 Rules:
@@ -816,9 +816,12 @@ The ticket's verification command.
 Append here when you need something from a file the other track owns. Format:
 `- [ ] (from Track X to Track Y) <what and why>`.
 
-- [ ] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
+- [x] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
   The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership
-  table assigns all of `src/test/` to Track A and no Track B ticket names a test file, so a
-  UI pull request cannot satisfy the rule as written. Until this is granted, Track B verifies
-  by loading the real FXML through `FXMLLoader`, rendering the scene off-screen and reading
-  the result, which catches injection and binding failures but leaves nothing in the suite.
+  table assigned all of `src/test/` to Track A and no Track B ticket named a test file, so a
+  UI pull request could not satisfy the rule as written. Track B was verifying by loading the
+  real FXML through `FXMLLoader`, rendering the scene off-screen and reading the result, which
+  catches injection and binding failures but leaves nothing in the suite.
+  **Granted.** A track that cannot test what it writes cannot verify its own tickets. The
+  ownership table above now assigns that directory to Track B; Track A keeps the rest of
+  `src/test/`. Those off-screen FXML checks should now be committed as real tests.
