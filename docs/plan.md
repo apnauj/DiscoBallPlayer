@@ -467,7 +467,7 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B3 — Now-playing panel
 
-- [ ] **[B3-01] Now-playing bar markup**
+- [x] **[B3-01] Now-playing bar markup**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
   - **Objective:** Bottom bar: `ImageView` cover (64×64), title and artist labels, elapsed /
     total labels, `ProgressBar`. `fx:id`s only, wiring comes next.
