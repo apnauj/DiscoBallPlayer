@@ -648,13 +648,13 @@ Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these 
     `service/PlayerService` to the architecture diagram; point at `docs/plan.md`.
   - **Verification:** `grep -c BinarySearchTree README.md` returns `0`.
 
-- [ ] **[C-06] Class diagram**
+- [x] **[C-06] Class diagram**
   - **Files:** `docs/diagrams/class-diagram.md`
   - **Objective:** A Mermaid `classDiagram` covering `model`, `structures`, `playback`, `service`,
     `repository` and the arrows between layers.
   - **Verification:** the fenced block renders on GitHub.
 
-- [ ] **[C-07] Complexity table for the defense**
+- [x] **[C-07] Complexity table for the defense**
   - **Files:** `docs/complexity.md`
   - **Objective:** Insertion, deletion, search and traversal, average and worst case, for all
     three structures, each row justified in one sentence.
