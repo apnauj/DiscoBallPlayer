@@ -1,19 +1,48 @@
 /*
- * Base stylesheet. Phase 4 grows this into the real theme and adds dark.css;
- * for now it only proves the stylesheet is found and applied.
+ * Shell stylesheet. B6-01 replaces these raw colours with a looked-up token palette;
+ * what lives here now is only the minimum that makes the three regions read as separate
+ * surfaces instead of one flat rectangle.
  */
 
 .root-pane {
     -fx-background-color: #14121c;
 }
 
-.app-title {
-    -fx-font-size: 32px;
+/* ---- left: sidebar ---------------------------------------------------- */
+
+.sidebar {
+    -fx-background-color: #1c1930;
+    -fx-border-color: transparent #2b2745 transparent transparent;
+    -fx-border-width: 1;
+}
+
+.brand-title {
+    -fx-font-size: 20px;
     -fx-font-weight: bold;
     -fx-text-fill: #f5f0ff;
 }
 
-.app-subtitle {
-    -fx-font-size: 14px;
+.section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7d75a0;
+}
+
+/* ---- center: library -------------------------------------------------- */
+
+.library-region {
+    -fx-background-color: #14121c;
+}
+
+/* ---- bottom: now playing ---------------------------------------------- */
+
+.now-playing-bar {
+    -fx-background-color: #201c34;
+    -fx-border-color: #2b2745 transparent transparent transparent;
+    -fx-border-width: 1;
+}
+
+.status-label {
+    -fx-font-size: 13px;
     -fx-text-fill: #9b93b5;
 }
