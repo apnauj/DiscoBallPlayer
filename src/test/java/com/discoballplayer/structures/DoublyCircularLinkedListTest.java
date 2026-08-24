@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -213,6 +214,51 @@ class DoublyCircularLinkedListTest {
         assertEquals("A", cursor.next());
         assertEquals("A", cursor.previous());
         assertEquals("A", cursor.current());
+    }
+
+    @Test
+    void cursorRejectsUseAfterDelete() {
+        DoublyCircularLinkedList<String> list = listOf("A", "B", "C");
+        DoublyCircularLinkedList<String>.Cursor cursor = list.cursor();
+
+        list.delete("B");
+
+        assertThrows(ConcurrentModificationException.class, cursor::next,
+                "a stale cursor would walk detached nodes and return plausible wrong answers");
+        assertThrows(ConcurrentModificationException.class, cursor::previous);
+        assertThrows(ConcurrentModificationException.class, cursor::current);
+    }
+
+    @Test
+    void cursorRejectsUseAfterInsert() {
+        DoublyCircularLinkedList<String> list = listOf("A", "B");
+        DoublyCircularLinkedList<String>.Cursor cursor = list.cursor();
+
+        list.insertAtEnd("C");
+
+        assertThrows(ConcurrentModificationException.class, cursor::next);
+    }
+
+    @Test
+    void aFailedDeleteDoesNotInvalidateTheCursor() {
+        DoublyCircularLinkedList<String> list = listOf("A", "B");
+        DoublyCircularLinkedList<String>.Cursor cursor = list.cursor();
+
+        assertFalse(list.delete("Z"));
+
+        assertEquals("B", cursor.next(), "nothing changed, so nothing should be invalidated");
+    }
+
+    @Test
+    void aCursorOpenedAfterTheChangeWorksNormally() {
+        DoublyCircularLinkedList<String> list = listOf("A", "B", "C");
+        list.cursor();
+        list.delete("B");
+
+        DoublyCircularLinkedList<String>.Cursor fresh = list.cursor();
+
+        assertEquals("A", fresh.current());
+        assertEquals("C", fresh.next());
     }
 
     @Test
