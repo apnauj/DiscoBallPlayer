@@ -467,24 +467,24 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B3 — Now-playing panel
 
-- [ ] **[B3-01] Now-playing bar markup**
+- [x] **[B3-01] Now-playing bar markup**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
   - **Objective:** Bottom bar: `ImageView` cover (64×64), title and artist labels, elapsed /
     total labels, `ProgressBar`. `fx:id`s only, wiring comes next.
   - **Verification:** `mvn javafx:run` shows the bar with placeholder text.
 
-- [ ] **[B3-02] Render metadata on `onSongChanged`**
+- [x] **[B3-02] Render metadata on `onSongChanged`**
   - **Files:** `ui/MainController.java`
   - **Objective:** Update title, artist and cover from the incoming `Song`. Missing or unreadable
     `coverPath` falls back to `images/default-cover.png` — never an exception, never a blank box.
   - **Verification:** `mvn javafx:run`, press Next, metadata changes.
 
-- [ ] **[B3-03] Default cover asset**
+- [x] **[B3-03] Default cover asset**
   - **Files:** `resources/com/discoballplayer/images/default-cover.png`
   - **Objective:** Ship a 512×512 placeholder so `B3-02`'s fallback resolves.
   - **Verification:** the file exists and `mvn javafx:run` renders it for a song with no cover.
 
-- [ ] **[B3-04] Progress bar driven by `onProgress`**
+- [x] **[B3-04] Progress bar driven by `onProgress`**
   - **Files:** `ui/MainController.java`
   - **Objective:** Set `progressBar.setProgress(elapsed / (double) total)` and both time labels,
     inside `Platform.runLater`. Reset to 0 on song change.

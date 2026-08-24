@@ -46,3 +46,19 @@
     -fx-font-size: 13px;
     -fx-text-fill: #9b93b5;
 }
+
+.now-playing-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f5f0ff;
+}
+
+.now-playing-artist {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9b93b5;
+}
+
+.time-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #7d75a0;
+}

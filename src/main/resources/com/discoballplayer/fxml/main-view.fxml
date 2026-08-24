@@ -4,9 +4,12 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <!--
@@ -72,12 +75,32 @@
 
     <bottom>
         <HBox fx:id="nowPlayingBar" styleClass="now-playing-bar"
-              alignment="CENTER_LEFT" spacing="16" minHeight="96">
+              alignment="CENTER_LEFT" spacing="18" minHeight="96">
             <padding>
                 <Insets top="16" right="20" bottom="16" left="20"/>
             </padding>
 
-            <Label fx:id="statusLabel" styleClass="status-label"/>
+            <!-- 64x64 by contract: B3-02 swaps the image, never the box, so the bar
+                 never reflows when a cover is missing or fails to decode. -->
+            <ImageView fx:id="coverImage" fitWidth="64" fitHeight="64"
+                       preserveRatio="false" smooth="true"/>
+
+            <VBox alignment="CENTER_LEFT" spacing="4" minWidth="200" prefWidth="240">
+                <Label fx:id="nowPlayingTitle" styleClass="now-playing-title" text="Nothing playing"/>
+                <Label fx:id="nowPlayingArtist" styleClass="now-playing-artist" text="Pick a song to begin"/>
+            </VBox>
+
+            <VBox HBox.hgrow="ALWAYS" alignment="CENTER" spacing="6">
+                <ProgressBar fx:id="progressBar" progress="0" maxWidth="Infinity"/>
+                <HBox spacing="8">
+                    <Label fx:id="elapsedLabel" styleClass="time-label" text="0:00"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="totalLabel" styleClass="time-label" text="0:00"/>
+                </HBox>
+            </VBox>
+
+            <Label fx:id="statusLabel" styleClass="status-label" minWidth="140"
+                   alignment="CENTER_RIGHT"/>
         </HBox>
     </bottom>
 
