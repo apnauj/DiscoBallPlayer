@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.discoballplayer.exception.EmptyStructureException;
+import com.discoballplayer.exception.SongNotFoundException;
 import com.discoballplayer.model.Album;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.playback.AlphabeticalMode;
@@ -24,6 +25,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Cursor;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -34,6 +36,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -72,6 +75,8 @@ public class MainController implements PlaybackListener {
     private static final String PAUSE = "Pause";
     private static final String QUEUE_FINISHED = "Queue finished";
     private static final String NO_SONG_LOADED = "No song loaded";
+    private static final String NO_JUMPING = "Arrival order plays in the order songs arrived";
+    private static final String NOT_IN_MODE = "That song is not in the current queue";
 
     /**
      * The seam. Injected, never constructed here.
@@ -221,6 +226,7 @@ public class MainController implements PlaybackListener {
         shuffleModeButton.setSelected(true);
         selectMode(new ShuffleMode());
         configureSelectionBinding();
+        configureClickToPlay();
         configureRatingSlider();
         // The scene does not exist while the controller is being initialised, so the theme and
         // the shortcuts are installed the moment the view is attached to one.
@@ -238,8 +244,52 @@ public class MainController implements PlaybackListener {
     }
 
     /**
-     * Edit and Delete act on the selected row, so they are bound to the selection rather than
-     * enabled and then guarded against a null.
+     * Double-clicking a row plays that song.
+     *
+     * <p>The handler is installed on the row rather than on the table so a double click on the
+     * empty area below the last song does nothing, and so the row that was hit is known
+     * without consulting the selection model.</p>
+     */
+    private void configureClickToPlay() {
+        libraryTable.setRowFactory(table -> {
+            TableRow<Song> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    playFromLibrary(row.getItem());
+                }
+            });
+            return row;
+        });
+    }
+
+    /**
+     * Plays a song picked out of the table.
+     *
+     * <p>Both refusals are ordinary answers, not defects: arrival order will not reposition
+     * because honouring a jump would mean discarding everything queued ahead of the target,
+     * and a song can be absent from a mode that was loaded before it was added. Either one
+     * reaching the FX event loop would break the window, so both become a status message.</p>
+     */
+    void playFromLibrary(Song song) {
+        if (!player.canPlaySong()) {
+            statusLabel.setText(NO_JUMPING);
+            return;
+        }
+        try {
+            player.playSong(song);
+            statusLabel.setText("");
+        } catch (UnsupportedOperationException cannotReposition) {
+            statusLabel.setText(NO_JUMPING);
+        } catch (SongNotFoundException notLoaded) {
+            statusLabel.setText(NOT_IN_MODE);
+        }
+        refreshTransport();
+    }
+
+    /**
+     * Edit and Delete act on the selection, so they are bound to it rather than enabled and
+     * then guarded against a null. Click-to-play follows the mode's own answer the same way
+     * the Previous button follows {@code hasPrevious()}.
      */
     private void configureSelectionBinding() {
         var noSelection = libraryTable.getSelectionModel().selectedItemProperty().isNull();
@@ -412,6 +462,7 @@ public class MainController implements PlaybackListener {
      */
     private void refreshTransport() {
         previousButton.setDisable(!player.hasPrevious());
+        libraryTable.setCursor(player.canPlaySong() ? Cursor.HAND : Cursor.DEFAULT);
     }
 
     // ---- mode selection --------------------------------------------------
