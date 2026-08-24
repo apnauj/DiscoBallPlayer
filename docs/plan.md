@@ -39,6 +39,23 @@ The prompt, the README and the committed code disagree on three names. Locked re
 
 ## 2. Parallelization protocol
 
+### Isolation is a precondition, not a nicety
+
+**Each session runs in its own git worktree.** Disjoint file ownership is necessary but not
+sufficient: two agents in one working directory share a single `HEAD`, a single index and a
+single checkout, so one session's `git checkout` yanks the branch out from under the other and
+its commits land on the wrong branch. This is not hypothetical — it happened on 2026-08-23 and
+put a Track B commit at the base of a Track A branch.
+
+```bash
+# Track A stays in the original directory. Once, to give Track B its own:
+git worktree add ../DiscoBallPlayer-ui develop
+```
+
+One `.git` is shared, so both sessions see the same branches and the same `origin`. `HEAD`, the
+index and the working tree are independent. A branch checked out in one worktree cannot be
+checked out in the other, which is the guard rail that makes this safe.
+
 Two sessions run concurrently on **disjoint file sets**. Ownership is absolute — if you need a
 change in a file you do not own, write it under "Cross-track requests" at the bottom of this
 file and keep working on something else.
@@ -56,6 +73,10 @@ Rules:
 2. Branch per ticket: `feature/<ticket-code-lowercase>`, e.g. `feature/a1-03-simple-queue`.
    PR into `develop`. Never commit to `develop` directly.
 3. `mvn test` must be green before opening a PR. A red `develop` stops both tracks.
+   **`Tests run: 0` is a failure even when Maven prints `BUILD SUCCESS`.** Surefire fails on an
+   unmatched test *class* but not on an unmatched test *method*, so a typo in a `-Dtest=Class#method`
+   verification command reports success while running nothing. Read the count, not the colour.
+   For the same reason test classes are flat: under `@Nested` the outer class matches and runs zero tests.
 4. Tick the box in this file **in the same PR** as the work.
 
 ---

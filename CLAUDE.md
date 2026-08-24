@@ -103,8 +103,14 @@ can run on `DemoPlayerService` while the real `Player` is still being written.
 
 ## Testing
 
-Tests live in `src/test/java` mirroring the main packages. Structures carry 35% of the grade,
-so they carry the tests. Minimum before a structure PR merges:
+Tests live in `src/test/java` mirroring the main packages. Test classes are **flat**: under
+`@Nested` the outer class matches `-Dtest=Class#method` and runs zero tests, so a verification
+command reports success while testing nothing.
+
+**`Tests run: 0` is a failure even when Maven prints `BUILD SUCCESS`.** Surefire fails on an
+unmatched test class but not on an unmatched test method. Read the count, not the colour.
+
+Structures carry 35% of the grade, so they carry the tests. Minimum before a structure PR merges:
 
 - **`DoublyCircularLinkedList`** — insert into empty; wrap forward and backward; delete head,
   tail, middle and only element; size correct throughout.
@@ -118,6 +124,14 @@ so they carry the tests. Minimum before a structure PR merges:
 
 GitFlow. `main` and `develop` are long-lived; everything else is deleted after merge.
 Branch names are lowercase English with the ticket code: `feature/a1-03-simple-queue`.
+
+**Two sessions never share a working directory.** One `HEAD` and one index between two agents
+means one session's checkout rewrites the other's working tree and its commits land on the
+wrong branch. Track B works from a separate worktree:
+
+```bash
+git worktree add ../DiscoBallPlayer-ui develop   # once, from the main checkout
+```
 
 ```bash
 git checkout develop && git pull origin develop
