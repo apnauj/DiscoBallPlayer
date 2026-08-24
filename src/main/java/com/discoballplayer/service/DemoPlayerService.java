@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import com.discoballplayer.model.Album;
 import com.discoballplayer.model.Artist;
 import com.discoballplayer.model.Genre;
+import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.playback.PlaybackMode;
 
@@ -17,8 +18,13 @@ import com.discoballplayer.playback.PlaybackMode;
  * In-memory {@link PlayerService} stub that exists so the UI can be built and run before the
  * real {@code Player} lands.
  *
- * <p>Navigation is a plain index into an {@code ArrayList}: no hand-written structure is
- * involved and none should be. This class is scaffolding, replaced in ticket {@code C-01}.</p>
+ * <p>With no mode selected, navigation is a plain index into an {@code ArrayList}. Once the
+ * UI selects one, navigation is delegated to that {@link PlaybackMode}, because the behaviour
+ * the UI has to render — a disabled Previous in arrival order, a queue that runs out — comes
+ * from the mode and cannot be faked by an index walk.</p>
+ *
+ * <p>The delegation is the mode's, not the structure's: this class never names a structure and
+ * never imports one. It is scaffolding, replaced in ticket {@code C-01}.</p>
  */
 public class DemoPlayerService implements PlayerService {
 
@@ -75,10 +81,10 @@ public class DemoPlayerService implements PlayerService {
     }
 
     private void tick() {
-        if (!playing || index < 0) {
+        Song song = current();
+        if (!playing || song == null) {
             return;
         }
-        Song song = songs.get(index);
         elapsedSeconds = Math.min(elapsedSeconds + TICK_SECONDS, song.getDurationSeconds());
         int elapsed = elapsedSeconds;
         int total = song.getDurationSeconds();
@@ -88,9 +94,27 @@ public class DemoPlayerService implements PlayerService {
         }
     }
 
+    /**
+     * Loads the mode from a snapshot of the demo catalogue and hands navigation over to it.
+     *
+     * <p>The snapshot is taken here and not kept in sync afterwards, which is the documented
+     * architecture: a mode owns the structure it built at {@code load} time, so adding a song
+     * does not mean reconciling three structures by hand.</p>
+     */
     @Override
     public void setMode(PlaybackMode mode) {
         this.mode = mode;
+        this.index = -1;
+        this.elapsedSeconds = 0;
+        if (mode != null) {
+            mode.load(snapshot());
+        }
+    }
+
+    private MusicLibrary snapshot() {
+        MusicLibrary library = new MusicLibrary();
+        songs.forEach(library::addSong);
+        return library;
     }
 
     @Override
@@ -98,49 +122,64 @@ public class DemoPlayerService implements PlayerService {
         return mode;
     }
 
+    /**
+     * @throws com.discoballplayer.exception.EmptyStructureException when the active mode has
+     *         run out of songs, which is what the UI renders as a finished queue
+     */
     @Override
     public Song next() {
+        if (mode != null) {
+            return announce(mode.next());
+        }
         if (songs.isEmpty()) {
             return null;
         }
         index = (index + 1) % songs.size();
-        return moveTo(index);
+        return announce(songs.get(index));
     }
 
+    /**
+     * @throws UnsupportedOperationException in a mode that cannot go back, such as arrival order
+     */
     @Override
     public Song previous() {
+        if (mode != null) {
+            return announce(mode.previous());
+        }
         if (songs.isEmpty()) {
             return null;
         }
         index = (index <= 0) ? songs.size() - 1 : index - 1;
-        return moveTo(index);
+        return announce(songs.get(index));
     }
 
-    private Song moveTo(int target) {
+    private Song announce(Song song) {
         elapsedSeconds = 0;
-        Song song = songs.get(target);
         listeners.forEach(listener -> listener.onSongChanged(song));
         return song;
     }
 
     @Override
     public boolean hasNext() {
-        return !songs.isEmpty();
+        return (mode != null) ? mode.hasNext() : !songs.isEmpty();
     }
 
     @Override
     public boolean hasPrevious() {
-        return !songs.isEmpty();
+        return (mode != null) ? mode.hasPrevious() : !songs.isEmpty();
     }
 
     @Override
     public Song current() {
+        if (mode != null) {
+            return mode.current();
+        }
         return (index < 0 || songs.isEmpty()) ? null : songs.get(index);
     }
 
     @Override
     public void play() {
-        if (index < 0) {
+        if (current() == null && hasNext()) {
             next();
         }
         setPlaying(true);
@@ -173,6 +212,14 @@ public class DemoPlayerService implements PlayerService {
             index = Math.min(index, songs.size() - 1);
             fireLibraryChanged();
         }
+    }
+
+    /**
+     * Releases the timer thread. The real {@code Player} owns an {@code AudioEngine} that will
+     * need the same, so the UI calls this on shutdown either way.
+     */
+    public void shutdown() {
+        ticker.shutdownNow();
     }
 
     @Override

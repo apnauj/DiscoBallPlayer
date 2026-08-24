@@ -62,3 +62,16 @@
     -fx-font-size: 11px;
     -fx-text-fill: #7d75a0;
 }
+
+.mode-option {
+    -fx-text-fill: #cec7e8;
+    -fx-font-size: 13px;
+}
+
+.mode-option:selected {
+    -fx-text-fill: #f5f0ff;
+}
+
+.transport-button:disabled {
+    -fx-opacity: 0.35;
+}

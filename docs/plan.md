@@ -506,18 +506,18 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B4 — Transport and mode selection
 
-- [ ] **[B4-01] Transport controls markup**
+- [x] **[B4-01] Transport controls markup**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
   - **Objective:** Previous / Play-Pause / Next buttons with `fx:id` and `onAction` handlers.
   - **Verification:** `mvn javafx:run` shows three clickable buttons.
 
-- [ ] **[B4-02] Transport handlers and Play/Pause toggle**
+- [x] **[B4-02] Transport handlers and Play/Pause toggle**
   - **Files:** `ui/MainController.java`
   - **Objective:** Handlers call `player.next()`, `player.previous()`, `player.play()`/`pause()`.
     The button label follows `onPlaybackStateChanged`, not local state.
   - **Verification:** `mvn javafx:run`, Play flips the label to Pause and back.
 
-- [ ] **[B4-03] Mode selector and Previous-button disabling**
+- [x] **[B4-03] Mode selector and Previous-button disabling**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
   - **Objective:** Three radio buttons (Shuffle / Arrival / Alphabetical) calling
     `player.setMode(...)`. After every navigation, `previousButton.setDisable(!player.hasPrevious())`.
@@ -525,12 +525,23 @@ background timer thread and touching a node off the FX thread throws at runtime.
     "three playback modes" rubric item. Get it right.
   - **Verification:** `mvn javafx:run`, pick Arrival, Previous is greyed out; pick Shuffle, it enables.
 
-- [ ] **[B4-04] Guard the UI against an exhausted queue**
+- [x] **[B4-04] Guard the UI against an exhausted queue**
   - **Files:** `ui/MainController.java`
   - **Objective:** Catch `EmptyStructureException` around `next()` and show a status message
     ("Queue finished") instead of letting the exception reach the FX event loop.
   - **Verification:** `mvn javafx:run`, Arrival mode, press Next past the last song — a message,
     no stack trace in the console.
+
+- [x] **[B4-05] Drive `DemoPlayerService` through the active `PlaybackMode`**
+  - **Files:** `service/DemoPlayerService.java`, `src/test/java/com/discoballplayer/ui/TransportControlsTest.java`
+  - **Objective:** Found while doing `B4-03`. The stub answered `hasPrevious()` with
+    `!songs.isEmpty()` and walked an index, so Previous could never grey out and the queue
+    could never run dry — `B4-03` and `B4-04` were both unverifiable against it. `setMode`
+    now loads the mode from a snapshot of the demo catalogue and `next`/`previous`/`hasNext`/
+    `hasPrevious`/`current` delegate to it, falling back to the index walk when no mode is set.
+  - **Scope limit:** the stub delegates to a `PlaybackMode`; it never names or imports a
+    structure. Replacing it with the real `Player` is still `C-01`.
+  - **Verification:** `mvn test -Dtest=TransportControlsTest#previousIsDisabledInArrivalOrder`
 
 ### B5 — Add / edit dialog
 
