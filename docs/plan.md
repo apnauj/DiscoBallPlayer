@@ -182,7 +182,7 @@ Runs in parallel with Track B. Never opens an FXML file.
 
 ### A1 — Hand-written structures (`structures/`) — 35% of the grade
 
-- [ ] **[A1-01] Bidirectional cursor on `DoublyCircularLinkedList`**
+- [x] **[A1-01] Bidirectional cursor on `DoublyCircularLinkedList`**
   - **Files:** `structures/DoublyCircularLinkedList.java`
   - **Objective:** Add a public nested `Cursor` (`current()`, `next()`, `previous()`) that walks
     the ring infinitely in both directions, plus `Cursor cursor()` returning one positioned at
@@ -190,7 +190,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Constraint:** `Node` stays private. `cursor()` on an empty list throws `EmptyStructureException`.
   - **Verification:** `mvn test -Dtest=DoublyCircularLinkedListTest#cursorWrapsForwardAndBackward`
 
-- [ ] **[A1-02] Test suite for `DoublyCircularLinkedList`**
+- [x] **[A1-02] Test suite for `DoublyCircularLinkedList`**
   - **Files:** `src/test/java/com/discoballplayer/structures/DoublyCircularLinkedListTest.java`
   - **Objective:** Cover insert into empty, forward wrap tail→head, backward wrap head→tail,
     delete of head / tail / middle / only element, `size` after each, `has` on absent element.
@@ -249,6 +249,14 @@ Runs in parallel with Track B. Never opens an FXML file.
     are the oral-defense script.
   - **Verification:** `mvn clean compile` exits 0; every public method in the three files has a
     complexity line (visual check).
+
+- [ ] **[A1-11] Fail fast when a cursor outlives a structural change**
+  - **Files:** `structures/DoublyCircularLinkedList.java`, `src/test/java/com/discoballplayer/structures/DoublyCircularLinkedListTest.java`
+  - **Objective:** A cursor opened before an insert or delete keeps walking detached nodes and
+    returns stale data instead of failing. Add a modification counter and throw
+    `ConcurrentModificationException` from `next`/`previous`/`current` when it moves.
+  - **Origin:** found during `A1-01`; documented in the `Cursor` Javadoc as a known limitation.
+  - **Verification:** `mvn test -Dtest=DoublyCircularLinkedListTest#cursorRejectsUseAfterDelete`
 
 ### A2 — Playback modes (`playback/`)
 
