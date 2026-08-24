@@ -41,6 +41,23 @@ public interface PlaybackMode {
     Song current();
 
     /**
+     * Repositions the mode onto {@code song}, so a user can play what they clicked.
+     *
+     * @throws UnsupportedOperationException in modes that cannot reposition. Arrival order is
+     *         one: honouring a jump would mean discarding everything queued ahead of the
+     *         target, which is not FIFO any more.
+     * @throws com.discoballplayer.exception.SongNotFoundException if the song is not in this
+     *         mode's structure
+     */
+    Song jumpTo(Song song);
+
+    /**
+     * @return whether {@link #jumpTo} is supported; the UI enables click-to-play from this
+     *         value rather than naming the mode
+     */
+    boolean canJumpTo();
+
+    /**
      * @return the human-readable name shown in the mode selector
      */
     String displayName();

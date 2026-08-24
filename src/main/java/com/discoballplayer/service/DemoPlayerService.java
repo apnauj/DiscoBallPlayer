@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.discoballplayer.exception.SongNotFoundException;
 import com.discoballplayer.model.Album;
 import com.discoballplayer.model.Artist;
 import com.discoballplayer.model.Genre;
@@ -157,6 +158,28 @@ public class DemoPlayerService implements PlayerService {
         elapsedSeconds = 0;
         listeners.forEach(listener -> listener.onSongChanged(song));
         return song;
+    }
+
+    /**
+     * Added by Track A when {@code PlayerService} gained click-to-play; the stub supports it so
+     * the UI behaves the same on demo data as on the real service.
+     */
+    @Override
+    public Song playSong(Song song) {
+        int target = songs.indexOf(song);
+        if (target < 0) {
+            throw new SongNotFoundException("Not in the demo library: " + song.getTitle());
+        }
+        index = target;
+        elapsedSeconds = 0;
+        listeners.forEach(listener -> listener.onSongChanged(song));
+        setPlaying(true);
+        return song;
+    }
+
+    @Override
+    public boolean canPlaySong() {
+        return !songs.isEmpty();
     }
 
     @Override

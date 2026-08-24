@@ -27,6 +27,20 @@ public interface PlayerService {
 
     Song current();
 
+    /**
+     * Plays {@code song} immediately, repositioning the active mode onto it.
+     *
+     * @throws UnsupportedOperationException if the active mode cannot reposition
+     * @throws com.discoballplayer.exception.SongNotFoundException if the song is not loaded
+     */
+    Song playSong(Song song);
+
+    /**
+     * @return whether {@link #playSong} is available right now; the UI enables click-to-play
+     *         from this value rather than naming the mode
+     */
+    boolean canPlaySong();
+
     void play();
 
     void pause();

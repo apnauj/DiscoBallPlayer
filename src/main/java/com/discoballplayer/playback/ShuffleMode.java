@@ -3,6 +3,7 @@ package com.discoballplayer.playback;
 import java.util.Random;
 
 import com.discoballplayer.exception.EmptyStructureException;
+import com.discoballplayer.exception.SongNotFoundException;
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.structures.DoublyCircularLinkedList;
@@ -100,6 +101,36 @@ public class ShuffleMode extends AbstractPlaybackMode {
     @Override
     public boolean hasPrevious() {
         return !ring.isEmpty();
+    }
+
+    /**
+     * Walks the ring until it lands on {@code song}, leaving the cursor there.
+     *
+     * <p>The shuffled order is untouched: jumping repositions the cursor, it does not
+     * re-randomize. Stepping forward from here continues the same permutation, which is what
+     * makes Previous still mean something afterwards.</p>
+     *
+     * @implNote Time complexity: O(n). A ring has no index.
+     */
+    @Override
+    public Song jumpTo(Song song) {
+        if (ring.isEmpty()) {
+            throw new EmptyStructureException("No songs loaded in shuffle mode.");
+        }
+        DoublyCircularLinkedList<Song>.Cursor candidate = ring.cursor();
+        for (int step = 0; step < ring.size(); step++) {
+            if (candidate.current().equals(song)) {
+                cursor = candidate;
+                return moveTo(song);
+            }
+            candidate.next();
+        }
+        throw new SongNotFoundException("Not in the shuffled ring: " + song.getTitle());
+    }
+
+    @Override
+    public boolean canJumpTo() {
+        return true;
     }
 
     @Override
