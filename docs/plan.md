@@ -403,25 +403,25 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
 
 ### A5 — Audio and progress (`playback/audio/`)
 
-- [ ] **[A5-01] `AudioEngine` interface**
+- [x] **[A5-01] `AudioEngine` interface**
   - **Files:** `playback/audio/AudioEngine.java`
   - **Objective:** `load(Song)`, `play()`, `pause()`, `stop()`, `elapsedSeconds()`,
     `setProgressCallback(IntConsumer)`. Keeps `Player` independent of whether audio is real.
   - **Verification:** `mvn clean compile` exits 0.
 
-- [ ] **[A5-02] `SimulatedAudioEngine` (timer-driven)**
+- [x] **[A5-02] `SimulatedAudioEngine` (timer-driven)**
   - **Files:** `playback/audio/SimulatedAudioEngine.java`, `src/test/java/com/discoballplayer/playback/SimulatedAudioEngineTest.java`
   - **Objective:** `ScheduledExecutorService` ticking once a second up to `song.getDurationSeconds()`,
     then signalling completion. This is the guaranteed-working progress bar; real audio is a bonus.
   - **Verification:** `mvn test -Dtest=SimulatedAudioEngineTest#emitsOneTickPerSecond`
 
-- [ ] **[A5-03] Test suite for `SimulatedAudioEngine`**
+- [x] **[A5-03] Test suite for `SimulatedAudioEngine`**
   - **Files:** `src/test/java/com/discoballplayer/playback/SimulatedAudioEngineTest.java`
   - **Objective:** Ticks advance while playing, freeze on `pause`, reset on `stop`, and stop at
     the song duration. Use an injectable clock so the test does not sleep for minutes.
   - **Verification:** `mvn test -Dtest=SimulatedAudioEngineTest` — all green.
 
-- [ ] **[A5-04] Wire `AudioEngine` into `Player`**
+- [x] **[A5-04] Wire `AudioEngine` into `Player`**
   - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** `Player` takes an `AudioEngine` by constructor, forwards `play`/`pause`, and
     republishes engine ticks as `onProgress`. On track completion it calls `next()` if `hasNext()`.
