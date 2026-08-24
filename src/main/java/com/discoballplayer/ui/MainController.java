@@ -31,11 +31,17 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TextInputControl;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -57,6 +63,7 @@ public class MainController implements PlaybackListener {
 
     private static final String DEFAULT_COVER = "/com/discoballplayer/images/default-cover.png";
     private static final String SONG_DIALOG = "/com/discoballplayer/fxml/song-dialog.fxml";
+    private static final String DARK_THEME = "/com/discoballplayer/css/dark.css";
 
     private static final String NO_SONG_TITLE = "Nothing playing";
     private static final String NO_SONG_ARTIST = "Pick a song to begin";
@@ -165,6 +172,12 @@ public class MainController implements PlaybackListener {
     @FXML
     private Label ratingValueLabel;
 
+    @FXML
+    private ToggleButton themeToggle;
+
+    @FXML
+    private javafx.scene.layout.BorderPane rootPane;
+
     /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
@@ -181,6 +194,19 @@ public class MainController implements PlaybackListener {
         selectMode(new ShuffleMode());
         configureSelectionBinding();
         configureRatingSlider();
+        // The scene does not exist while the controller is being initialised, so the theme and
+        // the shortcuts are installed the moment the view is attached to one.
+        rootPane.sceneProperty().addListener((observable, previous, scene) -> {
+            if (scene == null) {
+                return;
+            }
+            installShortcuts(scene);
+            // Deferred one pulse on purpose. This listener fires while the Scene is being
+            // constructed, before its owner has added app.css, and a stylesheet added first
+            // loses to one added after it. Waiting until the scene is assembled puts the
+            // theme override last, where it has to be to win.
+            Platform.runLater(() -> applyTheme(true));
+        });
     }
 
     /**
@@ -480,6 +506,95 @@ public class MainController implements PlaybackListener {
         } finally {
             syncingRating = false;
         }
+    }
+
+    // ---- theme -----------------------------------------------------------
+
+    @FXML
+    private void onToggleTheme() {
+        applyTheme(!themeToggle.isSelected());
+    }
+
+    /**
+     * Adds or removes {@code dark.css}, which carries token overrides and nothing else.
+     *
+     * <p>Because no size, padding or radius lives in that file, swapping it changes colours
+     * only and the scene graph is never re-measured.</p>
+     */
+    private void applyTheme(boolean dark) {
+        Scene scene = rootPane.getScene();
+        if (scene == null) {
+            return;
+        }
+        URL theme = MainController.class.getResource(DARK_THEME);
+        if (theme == null) {
+            return;
+        }
+        String stylesheet = theme.toExternalForm();
+        scene.getStylesheets().remove(stylesheet);
+        if (dark) {
+            scene.getStylesheets().add(stylesheet);
+        }
+        themeToggle.setSelected(!dark);
+        themeToggle.setText(dark ? "Light" : "Dark");
+    }
+
+    /** Visible for tests: which theme the scene is currently wearing. */
+    boolean isDarkTheme() {
+        Scene scene = rootPane.getScene();
+        URL theme = MainController.class.getResource(DARK_THEME);
+        return scene != null && theme != null
+                && scene.getStylesheets().contains(theme.toExternalForm());
+    }
+
+    // ---- keyboard --------------------------------------------------------
+
+    /**
+     * Registers the shortcuts on the scene rather than on individual buttons, so they work
+     * wherever the focus happens to be.
+     *
+     * <p>Space and the arrow keys are filtered rather than bound as accelerators: both already
+     * mean something inside a text field and inside the table, and stealing them there would
+     * make the search box unusable. The filter stands down whenever a text input has focus.</p>
+     */
+    private void installShortcuts(Scene scene) {
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN),
+                () -> searchField.requestFocus());
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN),
+                this::onAddSong);
+
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, this::handleTransportKey);
+    }
+
+    void handleTransportKey(KeyEvent event) {
+        if (scene() != null && scene().getFocusOwner() instanceof TextInputControl) {
+            return;
+        }
+        switch (event.getCode()) {
+            case SPACE -> {
+                onPlayPause();
+                event.consume();
+            }
+            case LEFT -> {
+                if (!previousButton.isDisabled()) {
+                    onPrevious();
+                }
+                event.consume();
+            }
+            case RIGHT -> {
+                onNext();
+                event.consume();
+            }
+            default -> {
+                // every other key belongs to whatever has focus
+            }
+        }
+    }
+
+    private Scene scene() {
+        return rootPane.getScene();
     }
 
     // ---- playback events -------------------------------------------------

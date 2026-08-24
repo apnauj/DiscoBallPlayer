@@ -1,0 +1,34 @@
+/*
+ * Dark theme.
+ *
+ * Token overrides and nothing else. Every rule in app.css references these by name, and the
+ * Modena bindings there (-fx-base, -fx-accent and friends) point at them rather than at
+ * literals, so redefining the block re-themes the window without restating a single rule and
+ * without touching a size, a padding or a radius. Adding or removing this stylesheet at
+ * runtime therefore cannot cause a relayout.
+ *
+ * If a rule ever has to be repeated here, the token it needs is missing from app.css.
+ */
+
+.root {
+
+    /* ---- surfaces ---- */
+    -db-surface: #131120;
+    -db-surface-raised: #1c1930;
+    -db-surface-sunken: #262140;
+    -db-border: #332c56;
+
+    /* ---- text ---- */
+    -db-text: #f5f0ff;
+    -db-text-secondary: #b4abd4;
+    -db-text-muted: #7d75a0;
+    -db-text-on-accent: #ffffff;
+
+    /* ---- accent and state ---- */
+    -db-accent: #8f6bff;
+    -db-accent-hover: #a184ff;
+    -db-accent-press: #7a56e8;
+    -db-selection: #362a66;
+    -db-hover: #272148;
+    -db-danger: #e0708c;
+}
