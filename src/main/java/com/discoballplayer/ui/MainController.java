@@ -1,8 +1,10 @@
 package com.discoballplayer.ui;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 
 import com.discoballplayer.exception.EmptyStructureException;
 import com.discoballplayer.model.Album;
@@ -21,15 +23,21 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 /**
  * Controller for {@code main-view.fxml}.
@@ -48,6 +56,7 @@ public class MainController implements PlaybackListener {
     private static final String ABSENT = "—";
 
     private static final String DEFAULT_COVER = "/com/discoballplayer/images/default-cover.png";
+    private static final String SONG_DIALOG = "/com/discoballplayer/fxml/song-dialog.fxml";
 
     private static final String NO_SONG_TITLE = "Nothing playing";
     private static final String NO_SONG_ARTIST = "Pick a song to begin";
@@ -62,6 +71,18 @@ public class MainController implements PlaybackListener {
 
     /** Decoded once: the fallback is reached often and re-reading it per song would show. */
     private Image defaultCover;
+
+    /** True while the slider is being set from a song, so the sync does not re-rate it. */
+    private boolean syncingRating;
+
+    /**
+     * The song the bar is currently showing.
+     *
+     * <p>Held rather than re-read from the service on demand: the rating slider sits next to
+     * this song's title, so it has to rate the song the user is looking at even if the service
+     * has since moved on.</p>
+     */
+    private Song displayedSong;
 
     @FXML
     private Label statusLabel;
@@ -129,6 +150,21 @@ public class MainController implements PlaybackListener {
     @FXML
     private RadioButton alphabeticalModeButton;
 
+    @FXML
+    private Button addButton;
+
+    @FXML
+    private Button editButton;
+
+    @FXML
+    private Button deleteButton;
+
+    @FXML
+    private Slider ratingSlider;
+
+    @FXML
+    private Label ratingValueLabel;
+
     /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
@@ -143,6 +179,18 @@ public class MainController implements PlaybackListener {
         statusLabel.setText(NO_SONG_LOADED);
         shuffleModeButton.setSelected(true);
         selectMode(new ShuffleMode());
+        configureSelectionBinding();
+        configureRatingSlider();
+    }
+
+    /**
+     * Edit and Delete act on the selected row, so they are bound to the selection rather than
+     * enabled and then guarded against a null.
+     */
+    private void configureSelectionBinding() {
+        var noSelection = libraryTable.getSelectionModel().selectedItemProperty().isNull();
+        editButton.disableProperty().bind(noSelection);
+        deleteButton.disableProperty().bind(noSelection);
     }
 
     /**
@@ -193,8 +241,14 @@ public class MainController implements PlaybackListener {
      * library, so filtering and the initial load are the same call.</p>
      */
     private void showMatches(String query) {
+        Song selected = libraryTable.getSelectionModel().getSelectedItem();
         List<Song> matches = player.search(query);
         libraryTable.setItems(FXCollections.observableArrayList(matches));
+        // Replacing the items clears the selection, which would disable Edit and Delete every
+        // time a rating change refreshed the table. Put the user's row back.
+        if (selected != null && matches.contains(selected)) {
+            libraryTable.getSelectionModel().select(selected);
+        }
     }
 
     // ---- now playing -----------------------------------------------------
@@ -208,6 +262,7 @@ public class MainController implements PlaybackListener {
         nowPlayingArtist.setText(NO_SONG_ARTIST);
         coverImage.setImage(defaultCover);
         renderProgress(0, 0);
+        syncRating(null);
     }
 
     private void renderNowPlaying(Song song) {
@@ -219,6 +274,7 @@ public class MainController implements PlaybackListener {
         nowPlayingArtist.setText(song.getArtistsNames());
         coverImage.setImage(coverFor(song));
         renderProgress(0, song.getDurationSeconds());
+        syncRating(song);
     }
 
     private void renderProgress(int elapsedSeconds, int totalSeconds) {
@@ -326,6 +382,104 @@ public class MainController implements PlaybackListener {
         clearNowPlaying();
         statusLabel.setText(NO_SONG_LOADED);
         refreshTransport();
+    }
+
+    // ---- library editing -------------------------------------------------
+
+    @FXML
+    private void onAddSong() {
+        Song created = showSongDialog(null);
+        if (created != null) {
+            player.addSong(created);
+        }
+    }
+
+    @FXML
+    private void onEditSong() {
+        Song selected = libraryTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        Song edited = showSongDialog(selected);
+        if (edited != null) {
+            player.updateSong(edited);
+        }
+    }
+
+    @FXML
+    private void onDeleteSong() {
+        Song selected = libraryTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        player.removeSong(selected);
+    }
+
+    /**
+     * Opens the add/edit form modally and returns what the user accepted.
+     *
+     * @param song the song to edit, or {@code null} to create one
+     * @return the saved song, or {@code null} if the dialog was cancelled
+     */
+    private Song showSongDialog(Song song) {
+        try {
+            URL view = Objects.requireNonNull(
+                    MainController.class.getResource(SONG_DIALOG), "song-dialog.fxml is missing");
+            FXMLLoader loader = new FXMLLoader(view);
+            Parent form = loader.load();
+            SongDialogController dialog = loader.getController();
+            dialog.setSong(song);
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initOwner(libraryTable.getScene().getWindow());
+            stage.setTitle(song == null ? "Add song" : "Edit song");
+            Scene scene = new Scene(form);
+            stylesheetOf(libraryTable).ifPresent(scene.getStylesheets()::add);
+            stage.setScene(scene);
+            stage.showAndWait();
+
+            return dialog.getResult();
+        } catch (IOException cannotLoad) {
+            statusLabel.setText("The song form could not be opened");
+            return null;
+        }
+    }
+
+    private static java.util.Optional<String> stylesheetOf(javafx.scene.Node node) {
+        Scene scene = node.getScene();
+        if (scene == null || scene.getStylesheets().isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(scene.getStylesheets().get(0));
+    }
+
+    // ---- rating ----------------------------------------------------------
+
+    private void configureRatingSlider() {
+        ratingSlider.valueProperty().addListener((observable, previous, value) -> {
+            int rating = (int) Math.round(value.doubleValue());
+            ratingValueLabel.setText("Rating " + rating);
+            if (syncingRating || displayedSong == null) {
+                return;
+            }
+            player.rate(displayedSong, rating);
+        });
+    }
+
+    /**
+     * Points the slider at the current song without treating the move as a user rating.
+     */
+    private void syncRating(Song song) {
+        displayedSong = song;
+        syncingRating = true;
+        try {
+            ratingSlider.setDisable(song == null);
+            ratingSlider.setValue(song == null ? 0 : song.getRating());
+            ratingValueLabel.setText("Rating " + (song == null ? 0 : song.getRating()));
+        } finally {
+            syncingRating = false;
+        }
     }
 
     // ---- playback events -------------------------------------------------

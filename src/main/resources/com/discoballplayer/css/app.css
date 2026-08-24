@@ -75,3 +75,31 @@
 .transport-button:disabled {
     -fx-opacity: 0.35;
 }
+
+/* ---- add / edit dialog ------------------------------------------------ */
+
+.dialog-root {
+    -fx-background-color: #1c1930;
+}
+
+.dialog-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f5f0ff;
+}
+
+.field-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9b93b5;
+}
+
+.field-error {
+    -fx-border-color: #e06c8a;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 3;
+}
+
+.error-message {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e06c8a;
+}

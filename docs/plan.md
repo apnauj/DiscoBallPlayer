@@ -545,32 +545,32 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B5 — Add / edit dialog
 
-- [ ] **[B5-01] `song-dialog.fxml` form**
+- [x] **[B5-01] `song-dialog.fxml` form**
   - **Files:** `resources/com/discoballplayer/fxml/song-dialog.fxml`
   - **Objective:** `GridPane` with fields for title, artist, album, duration, genre
     (`ComboBox<Genre>`), year, rating, cover path, audio path, plus Save / Cancel.
   - **Verification:** the file loads in Scene Builder / `FXMLLoader` without error.
 
-- [ ] **[B5-02] `SongDialogController` — read and write the form**
+- [x] **[B5-02] `SongDialogController` — read and write the form**
   - **Files:** `ui/SongDialogController.java`
   - **Objective:** `setSong(Song)` fills the form for edit mode (null means create); `getResult()`
     returns a built `Song`. Validation errors mark the field, they do not throw.
   - **Verification:** `mvn javafx:run`, open the dialog, empty title is rejected with a visible message.
 
-- [ ] **[B5-03] File pickers for cover and audio**
+- [x] **[B5-03] File pickers for cover and audio**
   - **Files:** `ui/SongDialogController.java`
   - **Objective:** Two `FileChooser` buttons storing **absolute paths**. Audio files are never
     copied into `resources/`.
   - **Verification:** `mvn javafx:run`, pick a file, the absolute path appears in the field.
 
-- [ ] **[B5-04] Wire Add / Edit / Delete from the main view**
+- [x] **[B5-04] Wire Add / Edit / Delete from the main view**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
   - **Objective:** Three toolbar buttons. Add opens an empty dialog then `player.addSong`; Edit
     opens the selected row then `player.updateSong`; Delete calls `player.removeSong`. Edit and
     Delete are disabled when nothing is selected.
   - **Verification:** `mvn javafx:run`, add a song — it appears in the table immediately.
 
-- [ ] **[B5-05] Rating control (0–100)**
+- [x] **[B5-05] Rating control (0–100)**
   - **Files:** `ui/MainController.java`
   - **Objective:** A `Slider` (0–100, snap to 5) in the now-playing bar calling
     `player.rate(current, value)` and refreshing the row.
