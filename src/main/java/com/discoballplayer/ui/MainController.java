@@ -1,5 +1,7 @@
 package com.discoballplayer.ui;
 
+import java.io.File;
+import java.net.URL;
 import java.util.List;
 
 import com.discoballplayer.model.Album;
@@ -15,9 +17,12 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 /**
  * Controller for {@code main-view.fxml}.
@@ -35,8 +40,16 @@ public class MainController implements PlaybackListener {
     /** Shown where a song carries no album. */
     private static final String ABSENT = "—";
 
+    private static final String DEFAULT_COVER = "/com/discoballplayer/images/default-cover.png";
+
+    private static final String NO_SONG_TITLE = "Nothing playing";
+    private static final String NO_SONG_ARTIST = "Pick a song to begin";
+
     /** The single line that ticket {@code C-01} swaps for the real {@code Player}. */
     private final PlayerService player = new DemoPlayerService();
+
+    /** Decoded once: the fallback is reached often and re-reading it per song would show. */
+    private Image defaultCover;
 
     @FXML
     private Label statusLabel;
@@ -68,17 +81,50 @@ public class MainController implements PlaybackListener {
     @FXML
     private TableColumn<Song, String> ratingColumn;
 
+    @FXML
+    private ImageView coverImage;
+
+    @FXML
+    private Label nowPlayingTitle;
+
+    @FXML
+    private Label nowPlayingArtist;
+
+    @FXML
+    private ProgressBar progressBar;
+
+    @FXML
+    private Label elapsedLabel;
+
+    @FXML
+    private Label totalLabel;
+
     /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
     @FXML
     private void initialize() {
+        defaultCover = loadDefaultCover();
         configureColumns();
         searchField.textProperty().addListener((observable, previous, query) -> showMatches(query));
         player.addListener(this);
         showMatches(searchField.getText());
+        clearNowPlaying();
         statusLabel.setText("No song loaded");
     }
+
+    /**
+     * The service this view talks to.
+     *
+     * <p>Package-private, and the only door into the controller's state: it lets a test drive
+     * the library the way the rest of the application will, through {@link PlayerService},
+     * rather than reaching for a field.</p>
+     */
+    PlayerService player() {
+        return player;
+    }
+
+    // ---- library table ---------------------------------------------------
 
     /**
      * Binds each column to a rendered string.
@@ -119,9 +165,72 @@ public class MainController implements PlaybackListener {
         libraryTable.setItems(FXCollections.observableArrayList(matches));
     }
 
+    // ---- now playing -----------------------------------------------------
+
+    /**
+     * Puts the bar back into its idle state, cover included, so nothing from a previous song
+     * lingers next to placeholder text.
+     */
+    private void clearNowPlaying() {
+        nowPlayingTitle.setText(NO_SONG_TITLE);
+        nowPlayingArtist.setText(NO_SONG_ARTIST);
+        coverImage.setImage(defaultCover);
+        renderProgress(0, 0);
+    }
+
+    private void renderNowPlaying(Song song) {
+        if (song == null) {
+            clearNowPlaying();
+            return;
+        }
+        nowPlayingTitle.setText(song.getTitle());
+        nowPlayingArtist.setText(song.getArtistsNames());
+        coverImage.setImage(coverFor(song));
+        renderProgress(0, song.getDurationSeconds());
+    }
+
+    private void renderProgress(int elapsedSeconds, int totalSeconds) {
+        double fraction = (totalSeconds <= 0)
+                ? 0
+                : Math.min(1, Math.max(0, elapsedSeconds / (double) totalSeconds));
+        progressBar.setProgress(fraction);
+        elapsedLabel.setText(TimeFormatter.mmss(elapsedSeconds));
+        totalLabel.setText(TimeFormatter.mmss(totalSeconds));
+    }
+
+    /**
+     * Resolves a song's cover, falling back to the shipped placeholder.
+     *
+     * <p>A cover path is user-supplied and points outside the jar, so every way it can fail —
+     * absent, not a file, not an image, not even a valid URL — has to land on the placeholder.
+     * A blank box or a dialog in the middle of playback would both be worse than a default
+     * picture.</p>
+     */
+    private Image coverFor(Song song) {
+        String path = song.getCoverPath();
+        if (path == null || path.isBlank()) {
+            return defaultCover;
+        }
+        try {
+            File file = new File(path);
+            String source = file.isFile() ? file.toURI().toString() : path;
+            Image cover = new Image(source, false);
+            return cover.isError() ? defaultCover : cover;
+        } catch (RuntimeException malformedPath) {
+            return defaultCover;
+        }
+    }
+
+    private Image loadDefaultCover() {
+        URL resource = MainController.class.getResource(DEFAULT_COVER);
+        return (resource == null) ? null : new Image(resource.toExternalForm(), false);
+    }
+
+    // ---- playback events -------------------------------------------------
+
     @Override
     public void onSongChanged(Song song) {
-        // Metadata and cover rendering arrive in B3-02.
+        Platform.runLater(() -> renderNowPlaying(song));
     }
 
     @Override
@@ -131,7 +240,7 @@ public class MainController implements PlaybackListener {
 
     @Override
     public void onProgress(int elapsedSeconds, int totalSeconds) {
-        // The progress bar and time labels follow this event from B3-04.
+        Platform.runLater(() -> renderProgress(elapsedSeconds, totalSeconds));
     }
 
     @Override
