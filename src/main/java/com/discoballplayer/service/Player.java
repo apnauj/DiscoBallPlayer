@@ -134,6 +134,28 @@ public class Player implements PlayerService {
         return mode == null ? null : mode.current();
     }
 
+    /**
+     * Repositions the mode onto a song and starts it.
+     *
+     * <p>Unlike {@link #next()} this always begins playing: the user picked that song, so
+     * loading it silently would look like a dead click.</p>
+     */
+    @Override
+    public Song playSong(Song song) {
+        Objects.requireNonNull(song, "The song can't be null.");
+        Song selected = requireMode().jumpTo(song);
+        audio.load(selected);
+        fireSongChanged(selected);
+        setPlaying(true);
+        audio.play();
+        return selected;
+    }
+
+    @Override
+    public boolean canPlaySong() {
+        return mode != null && mode.canJumpTo();
+    }
+
     // ---------- transport ----------
 
     @Override

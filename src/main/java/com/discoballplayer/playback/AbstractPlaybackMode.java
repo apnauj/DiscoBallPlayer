@@ -58,6 +58,20 @@ public abstract class AbstractPlaybackMode implements PlaybackMode {
     }
 
     /**
+     * Refused by default. A mode that can reposition says so by overriding both this and
+     * {@link #canJumpTo()}, which keeps the two answers from drifting apart.
+     */
+    @Override
+    public Song jumpTo(Song song) {
+        throw new UnsupportedOperationException(displayName() + " cannot jump to a song.");
+    }
+
+    @Override
+    public boolean canJumpTo() {
+        return false;
+    }
+
+    /**
      * @return {@code true} once {@link #load} has run on a library holding at least one song
      */
     protected final boolean isLoaded() {

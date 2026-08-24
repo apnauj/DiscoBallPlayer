@@ -42,6 +42,7 @@ class PlayerTest {
         boolean nextThrows;
         boolean previousUnsupported;
         boolean exhausted;
+        boolean jumpSupported = true;
 
         @Override
         public void load(MusicLibrary library) {
@@ -81,6 +82,20 @@ class PlayerTest {
         @Override
         public Song current() {
             return currentSong;
+        }
+
+        @Override
+        public Song jumpTo(Song target) {
+            if (!jumpSupported) {
+                throw new UnsupportedOperationException("stub cannot jump");
+            }
+            currentSong = target;
+            return target;
+        }
+
+        @Override
+        public boolean canJumpTo() {
+            return jumpSupported;
         }
 
         @Override
@@ -550,5 +565,71 @@ class PlayerTest {
         player.dispose();
 
         assertTrue(audio.calls.contains("dispose"));
+    }
+
+    // ---------- click to play ----------
+
+    @Test
+    void playSongRepositionsTheModeAndStartsPlaying() {
+        MusicLibrary library = libraryOf("A", "B");
+        Player player = newPlayer(library);
+        player.setMode(new StubMode());
+        Song target = library.getAllSongs().get(1);
+        audio.calls.clear();
+
+        Song played = player.playSong(target);
+
+        assertSame(target, played);
+        assertSame(target, player.current());
+        assertTrue(player.isPlaying(), "the user picked that song; loading it silently reads as a dead click");
+        assertEquals(List.of("load:B", "play"), audio.calls);
+    }
+
+    @Test
+    void playSongAnnouncesTheSongChange() {
+        MusicLibrary library = libraryOf("A", "B");
+        Player player = newPlayer(library);
+        player.setMode(new StubMode());
+        RecordingListener listener = new RecordingListener();
+        player.addListener(listener);
+
+        player.playSong(library.getAllSongs().get(0));
+
+        assertTrue(listener.events.contains("song:A"));
+    }
+
+    @Test
+    void canPlaySongFollowsTheMode() {
+        Player player = newPlayer(libraryOf("A"));
+        StubMode mode = new StubMode();
+
+        assertFalse(player.canPlaySong(), "no mode selected yet");
+        player.setMode(mode);
+        assertTrue(player.canPlaySong());
+
+        mode.jumpSupported = false;
+        assertFalse(player.canPlaySong(), "the UI reads this to disable click-to-play");
+    }
+
+    @Test
+    void playSongOnAModeThatCannotJumpSurfacesTheRefusal() {
+        MusicLibrary library = libraryOf("A");
+        Player player = newPlayer(library);
+        StubMode mode = new StubMode();
+        player.setMode(mode);
+        mode.jumpSupported = false;
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> player.playSong(library.getAllSongs().get(0)),
+                "arrival order refuses; the UI must see that, not a swallowed no-op");
+    }
+
+    @Test
+    void playSongWithoutAModeFailsLoudly() {
+        MusicLibrary library = libraryOf("A");
+        Player player = newPlayer(library);
+
+        assertThrows(IllegalStateException.class,
+                () -> player.playSong(library.getAllSongs().get(0)));
     }
 }

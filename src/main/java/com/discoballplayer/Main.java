@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.playback.ShuffleMode;
-import com.discoballplayer.playback.audio.SimulatedAudioEngine;
+import com.discoballplayer.playback.audio.JavaFxAudioEngine;
 import com.discoballplayer.repository.JsonLibraryRepository;
 import com.discoballplayer.repository.LibraryRepository;
 import com.discoballplayer.service.Player;
@@ -52,7 +52,7 @@ public class Main extends Application {
     public void start(Stage stage) throws IOException {
         repository = new JsonLibraryRepository();
         library = loadLibrary(repository);
-        player = new Player(library, new SimulatedAudioEngine());
+        player = new Player(library, new JavaFxAudioEngine());
         player.setMode(new ShuffleMode());
 
         Scene scene = new Scene(loadView(), MIN_WIDTH, MIN_HEIGHT);

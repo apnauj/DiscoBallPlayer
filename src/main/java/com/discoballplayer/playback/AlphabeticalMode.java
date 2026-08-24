@@ -3,6 +3,7 @@ package com.discoballplayer.playback;
 import java.util.NoSuchElementException;
 
 import com.discoballplayer.exception.EmptyStructureException;
+import com.discoballplayer.exception.SongNotFoundException;
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.structures.BST;
@@ -83,6 +84,37 @@ public class AlphabeticalMode extends AbstractPlaybackMode {
     @Override
     public boolean hasPrevious() {
         return cursor != null && cursor.hasPrevious();
+    }
+
+    /**
+     * Repositions onto {@code song} by walking the in-order sequence to it.
+     *
+     * <p>The tree can find the node in O(log n), but the cursor is the only way in and it
+     * exposes no seek — deliberately, since handing out nodes would let callers reach into the
+     * structure. Stepping is O(n) overall and runs once per click, which is the right trade
+     * against widening the structure's API.</p>
+     *
+     * @implNote Time complexity: O(n) steps, each O(log n) in the worst case.
+     */
+    @Override
+    public Song jumpTo(Song song) {
+        if (tree.isEmpty()) {
+            throw new EmptyStructureException("No songs loaded in alphabetical mode.");
+        }
+        if (!tree.contains(song)) {
+            throw new SongNotFoundException("Not in the tree: " + song.getTitle());
+        }
+        BST<Song>.Cursor candidate = tree.cursor();
+        while (!candidate.current().equals(song) && candidate.hasNext()) {
+            candidate.next();
+        }
+        cursor = candidate;
+        return moveTo(candidate.current());
+    }
+
+    @Override
+    public boolean canJumpTo() {
+        return true;
     }
 
     @Override
