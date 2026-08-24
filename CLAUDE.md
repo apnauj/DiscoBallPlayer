@@ -11,7 +11,10 @@ complexity for insertion, deletion, search and traversal.
 `docs/plan.md` is the single source of truth for what is done and what is next.
 
 1. Read it before starting any work. Pick the lowest-numbered unticked ticket in **your track**.
-2. Do exactly one ticket per branch and per pull request. Never batch tickets.
+2. One branch and one pull request per **coherent unit**: a single structure, a single
+   playback mode, a single UI panel — implementation plus the tests that verify it. Group the
+   tickets that make up that unit; never mix two units in one PR. A PR that ships production
+   code without its test is not a coherent unit.
 3. Tick the box (`- [ ]` → `- [x]`) **in the same PR as the work**, only after the ticket's
    verification command passes.
 4. Never edit a ticket owned by the other track, and never edit a file the ownership table
