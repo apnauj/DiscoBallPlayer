@@ -1,105 +1,403 @@
 /*
- * Shell stylesheet. B6-01 replaces these raw colours with a looked-up token palette;
- * what lives here now is only the minimum that makes the three regions read as separate
- * surfaces instead of one flat rectangle.
+ * DiscoBallPlayer base theme.
+ *
+ * Every colour in this file is declared once in the token block below and referenced by name
+ * afterwards. No rule past that block contains a hex literal. That is what lets dark.css
+ * re-theme the whole window by overriding the token block alone, with no rule duplicated and
+ * no layout recomputed.
+ *
+ * The block also overrides Modena's own looked-up colours (-fx-base, -fx-accent and friends).
+ * Controls we never style by hand -- the combo box popup, scroll bars, the text cursor --
+ * derive their colours from those, so overriding them is what keeps default-grey panels from
+ * appearing next to styled ones.
  */
 
-.root-pane {
-    -fx-background-color: #14121c;
+.root {
+
+    /* ---- surfaces ---- */
+    -db-surface: #f4f1fb;
+    -db-surface-raised: #ffffff;
+    -db-surface-sunken: #eae5f6;
+    -db-border: #dcd4ee;
+
+    /* ---- text ---- */
+    -db-text: #1b1630;
+    -db-text-secondary: #5f5784;
+    -db-text-muted: #918ab0;
+    -db-text-on-accent: #ffffff;
+
+    /* ---- accent and state ---- */
+    -db-accent: #6c4bf5;
+    -db-accent-hover: #7d60ff;
+    -db-accent-press: #5a3ad8;
+    -db-selection: #e3dcff;
+    -db-hover: #efeaff;
+    -db-danger: #c93a63;
+
+    /* ---- Modena's own tokens, so unstyled controls follow the theme ---- */
+    -fx-base: -db-surface-raised;
+    -fx-background: -db-surface;
+    -fx-control-inner-background: -db-surface-raised;
+    -fx-control-inner-background-alt: -db-surface-sunken;
+    -fx-accent: -db-accent;
+    -fx-default-button: -db-accent;
+    -fx-focus-color: -db-accent;
+    -fx-faint-focus-color: transparent;
+    -fx-text-background-color: -db-text;
+    -fx-selection-bar: -db-selection;
+    -fx-selection-bar-non-focused: -db-surface-sunken;
+
+    -fx-font-family: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
 }
 
-/* ---- left: sidebar ---------------------------------------------------- */
+/* ======================================================================
+   Regions
+   ====================================================================== */
+
+.root-pane {
+    -fx-background-color: -db-surface;
+}
 
 .sidebar {
-    -fx-background-color: #1c1930;
-    -fx-border-color: transparent #2b2745 transparent transparent;
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: transparent -db-border transparent transparent;
     -fx-border-width: 1;
 }
+
+.library-region {
+    -fx-background-color: -db-surface;
+}
+
+.now-playing-bar {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: -db-border transparent transparent transparent;
+    -fx-border-width: 1;
+}
+
+/* ======================================================================
+   Typography
+   ====================================================================== */
 
 .brand-title {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
-    -fx-text-fill: #f5f0ff;
+    -fx-text-fill: -db-text;
 }
 
 .section-title {
-    -fx-font-size: 11px;
+    -fx-font-size: 10px;
     -fx-font-weight: bold;
-    -fx-text-fill: #7d75a0;
-}
-
-/* ---- center: library -------------------------------------------------- */
-
-.library-region {
-    -fx-background-color: #14121c;
-}
-
-/* ---- bottom: now playing ---------------------------------------------- */
-
-.now-playing-bar {
-    -fx-background-color: #201c34;
-    -fx-border-color: #2b2745 transparent transparent transparent;
-    -fx-border-width: 1;
-}
-
-.status-label {
-    -fx-font-size: 13px;
-    -fx-text-fill: #9b93b5;
+    -fx-text-fill: -db-text-muted;
 }
 
 .now-playing-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
-    -fx-text-fill: #f5f0ff;
+    -fx-text-fill: -db-text;
 }
 
 .now-playing-artist {
     -fx-font-size: 12px;
-    -fx-text-fill: #9b93b5;
+    -fx-text-fill: -db-text-secondary;
 }
 
 .time-label {
     -fx-font-size: 11px;
-    -fx-text-fill: #7d75a0;
+    -fx-text-fill: -db-text-muted;
 }
 
+.status-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+.field-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+/* ======================================================================
+   Library table
+   ====================================================================== */
+
+.library-table {
+    -fx-background-color: -db-surface-raised;
+    -fx-background-radius: 8;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 8;
+    -fx-table-cell-border-color: transparent;
+}
+
+.library-table .column-header-background {
+    -fx-background-color: -db-surface-sunken;
+    -fx-background-radius: 8 8 0 0;
+}
+
+.library-table .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 10 8 10 8;
+}
+
+.library-table .column-header .label {
+    -fx-text-fill: -db-text-secondary;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.library-table .table-row-cell {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: transparent transparent -db-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-cell-size: 34px;
+}
+
+.library-table .table-row-cell:odd {
+    -fx-background-color: -db-surface;
+}
+
+.library-table .table-row-cell:hover {
+    -fx-background-color: -db-hover;
+}
+
+.library-table .table-row-cell:selected {
+    -fx-background-color: -db-selection;
+}
+
+.library-table .table-cell {
+    -fx-text-fill: -db-text;
+    -fx-padding: 0 8 0 8;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.library-table .table-row-cell:selected .table-cell {
+    -fx-text-fill: -db-text;
+    -fx-font-weight: bold;
+}
+
+/* An empty table should read as empty, not as a broken grid. */
+.library-table .table-row-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.library-table .table-row-cell:empty .table-cell {
+    -fx-border-color: transparent;
+}
+
+/* ======================================================================
+   Buttons
+   ====================================================================== */
+
+.button {
+    -fx-background-color: -db-surface-sunken;
+    -fx-text-fill: -db-text;
+    -fx-background-radius: 6;
+    -fx-padding: 7 16 7 16;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: -db-hover;
+}
+
+.button:pressed {
+    -fx-background-color: -db-selection;
+}
+
+.primary-button {
+    -fx-background-color: -db-accent;
+    -fx-text-fill: -db-text-on-accent;
+    -fx-font-weight: bold;
+}
+
+.primary-button:hover {
+    -fx-background-color: -db-accent-hover;
+}
+
+.primary-button:pressed {
+    -fx-background-color: -db-accent-press;
+}
+
+/*
+ * The disabled state has to read as disabled across the room: Previous greying out in arrival
+ * order is the visible proof that a queue cannot go backwards. Opacity alone is too subtle at
+ * a projector, so the fill and the text both drop as well.
+ */
+.button:disabled {
+    -fx-background-color: -db-surface-sunken;
+    -fx-text-fill: -db-text-muted;
+    -fx-opacity: 0.45;
+    -fx-cursor: default;
+}
+
+.primary-button:disabled {
+    -fx-background-color: -db-surface-sunken;
+    -fx-text-fill: -db-text-muted;
+}
+
+/* ======================================================================
+   Mode selector
+   ====================================================================== */
+
 .mode-option {
-    -fx-text-fill: #cec7e8;
+    -fx-text-fill: -db-text-secondary;
     -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 3 0 3 0;
 }
 
 .mode-option:selected {
-    -fx-text-fill: #f5f0ff;
+    -fx-text-fill: -db-text;
+    -fx-font-weight: bold;
 }
 
-.transport-button:disabled {
-    -fx-opacity: 0.35;
+.mode-option .radio {
+    -fx-background-color: -db-border;
+    -fx-background-radius: 20;
+    -fx-padding: 4;
 }
 
-/* ---- add / edit dialog ------------------------------------------------ */
+.mode-option:selected .radio {
+    -fx-background-color: -db-accent;
+}
+
+.mode-option:selected .dot {
+    -fx-background-color: -db-text-on-accent;
+    -fx-background-insets: 0;
+}
+
+/* ======================================================================
+   Text fields
+   ====================================================================== */
+
+.text-field {
+    -fx-background-color: -db-surface-raised;
+    -fx-text-fill: -db-text;
+    -fx-prompt-text-fill: -db-text-muted;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 7 10 7 10;
+}
+
+.text-field:focused {
+    -fx-border-color: -db-accent;
+}
+
+.field-error {
+    -fx-border-color: -db-danger;
+    -fx-border-width: 1.5;
+}
+
+.error-message {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-danger;
+}
+
+/* ======================================================================
+   Progress bar and slider
+   ====================================================================== */
+
+.progress-bar {
+    -fx-indeterminate-bar-animation-time: 0;
+}
+
+.progress-bar > .track {
+    -fx-background-color: -db-surface-sunken;
+    -fx-background-radius: 4;
+    -fx-pref-height: 6;
+}
+
+.progress-bar > .bar {
+    -fx-background-color: -db-accent;
+    -fx-background-radius: 4;
+    -fx-background-insets: 0;
+    -fx-padding: 3;
+}
+
+.slider .track {
+    -fx-background-color: -db-surface-sunken;
+    -fx-background-radius: 3;
+    -fx-pref-height: 5;
+}
+
+.slider .thumb {
+    -fx-background-color: -db-accent;
+    -fx-background-radius: 10;
+    -fx-padding: 6;
+}
+
+.slider:disabled .thumb {
+    -fx-background-color: -db-text-muted;
+}
+
+.slider .axis {
+    -fx-tick-label-fill: transparent;
+}
+
+/* ======================================================================
+   Add / edit dialog
+   ====================================================================== */
 
 .dialog-root {
-    -fx-background-color: #1c1930;
+    -fx-background-color: -db-surface;
 }
 
 .dialog-title {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #f5f0ff;
+    -fx-text-fill: -db-text;
 }
 
-.field-label {
-    -fx-font-size: 12px;
-    -fx-text-fill: #9b93b5;
+/* ======================================================================
+   Combo box and scroll bars
+   ====================================================================== */
+
+.combo-box {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
 }
 
-.field-error {
-    -fx-border-color: #e06c8a;
-    -fx-border-width: 1.5;
-    -fx-border-radius: 3;
+.combo-box .list-cell {
+    -fx-text-fill: -db-text;
+    -fx-padding: 6 10 6 10;
 }
 
-.error-message {
-    -fx-font-size: 12px;
-    -fx-text-fill: #e06c8a;
+.combo-box-popup .list-view {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: -db-border;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: -db-hover;
+}
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -db-border;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: -db-text-muted;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
 }

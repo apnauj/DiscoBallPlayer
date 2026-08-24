@@ -578,13 +578,13 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B6 — Visual design (10% of the grade)
 
-- [ ] **[B6-01] Design tokens and base theme in `app.css`**
+- [x] **[B6-01] Design tokens and base theme in `app.css`**
   - **Files:** `resources/com/discoballplayer/css/app.css`
   - **Objective:** Define the palette as CSS `-fx-` looked-up colours in `.root`, then style
     backgrounds, typography and spacing. Every later rule references a token, never a raw hex.
   - **Verification:** `mvn javafx:run` — no unstyled default-grey panels.
 
-- [ ] **[B6-02] Table, button and slider styling**
+- [x] **[B6-02] Table, button and slider styling**
   - **Files:** `resources/com/discoballplayer/css/app.css`
   - **Objective:** Row hover and selection states, a distinct primary style for Play, a visibly
     dimmed `:disabled` state (Previous in Arrival mode must *read* as disabled).
