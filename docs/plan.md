@@ -306,14 +306,14 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
     same song; two `load()` calls on the same library produce different orders (seeded, tolerant).
   - **Verification:** `mvn test -Dtest=ShuffleModeTest` — all green.
 
-- [ ] **[A2-04] `ArrivalMode` over `SimpleQueue`**
+- [x] **[A2-04] `ArrivalMode` over `SimpleQueue`**
   - **Files:** `playback/ArrivalMode.java`, `src/test/java/com/discoballplayer/playback/ArrivalModeTest.java`
   - **Objective:** Strict FIFO. `next()` dequeues permanently. `previous()` throws
     `UnsupportedOperationException`, `hasPrevious()` returns `false` — that disabled Previous
     button is the visible proof of FIFO at defense. `next()` on empty throws `EmptyStructureException`.
   - **Verification:** `mvn test -Dtest=ArrivalModeTest#previousAlwaysUnsupported`
 
-- [ ] **[A2-05] Test suite for `ArrivalMode`**
+- [x] **[A2-05] Test suite for `ArrivalMode`**
   - **Files:** `src/test/java/com/discoballplayer/playback/ArrivalModeTest.java`
   - **Objective:** FIFO order matches library insertion order; queue drains to empty; exhausted
     `next()` throws; `hasPrevious()` is false at every step; the source `MusicLibrary` is untouched.
