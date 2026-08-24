@@ -180,10 +180,15 @@ destroyed. See the amended `A1-05` and `A1-06`.
 
 Runs in parallel with Track B. Never opens an FXML file.
 
+**Every implementation ticket ships the test that verifies it.** A ticket's Files list names
+both the production file and the test file holding its verification method, so nothing merges
+untested. The dedicated test-suite tickets that follow *extend* that same file to the full
+coverage baseline in `CLAUDE.md`; they never create it from nothing.
+
 ### A1 — Hand-written structures (`structures/`) — 35% of the grade
 
 - [x] **[A1-01] Bidirectional cursor on `DoublyCircularLinkedList`**
-  - **Files:** `structures/DoublyCircularLinkedList.java`
+  - **Files:** `structures/DoublyCircularLinkedList.java`, `src/test/java/com/discoballplayer/structures/DoublyCircularLinkedListTest.java`
   - **Objective:** Add a public nested `Cursor` (`current()`, `next()`, `previous()`) that walks
     the ring infinitely in both directions, plus `Cursor cursor()` returning one positioned at
     the head. `ShuffleMode` navigates through this and never sees `Node`.
@@ -197,7 +202,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn test -Dtest=DoublyCircularLinkedListTest` — all green.
 
 - [x] **[A1-03] Implement `SimpleQueue<T>`**
-  - **Files:** `structures/SimpleQueue.java`
+  - **Files:** `structures/SimpleQueue.java`, `src/test/java/com/discoballplayer/structures/SimpleQueueTest.java`
   - **Objective:** Hand-written FIFO with head/tail node references. API: `enqueue`, `dequeue`,
     `peek`, `isEmpty`, `size`. `dequeue`/`peek` on empty throw `EmptyStructureException`.
   - **Constraint:** no `java.util` collection inside. Javadoc states O(1) for every operation.
@@ -210,20 +215,20 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn test -Dtest=SimpleQueueTest` — all green.
 
 - [x] **[A1-05] Clean up the `BST` public API**
-  - **Files:** `structures/BST.java`
+  - **Files:** `structures/BST.java`, `src/test/java/com/discoballplayer/structures/BSTTest.java`
   - **Objective:** `F0-02` already deleted the `Node`-returning `search` and made `Node` private.
     What remains: add `boolean contains(T value)`, `T find(T value)` and `size()`.
   - **Verification:** `mvn test -Dtest=BSTTest#containsFindsInsertedValue`
 
 - [x] **[A1-06] Maintain `parent` pointers through insert and delete in `BST`**
-  - **Files:** `structures/BST.java`
+  - **Files:** `structures/BST.java`, `src/test/java/com/discoballplayer/structures/BSTTest.java`
   - **Objective:** `F0-02` rewired `parent` through `insert` and `delete` while fixing the
     rewrite. This ticket is now the **proof**: write the test that would have caught the
     dangling pointers, and fix whatever it finds. Do not assume `F0-02` got every case right.
   - **Verification:** `mvn test -Dtest=BSTTest#parentPointersStayConsistentAfterDeletes`
 
 - [x] **[A1-07] In-order successor / predecessor and a bidirectional cursor on `BST`**
-  - **Files:** `structures/BST.java`
+  - **Files:** `structures/BST.java`, `src/test/java/com/discoballplayer/structures/BSTTest.java`
   - **Objective:** `successor(node)` / `predecessor(node)` via parent pointers, plus a public
     `Cursor` (`current`, `next`, `previous`, `hasNext`, `hasPrevious`) starting at the minimum.
   - **Hard constraint:** **never flatten the tree into a list.** No `List`, no array, no
@@ -268,7 +273,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn clean compile` exits 0.
 
 - [ ] **[A2-02] `ShuffleMode` over `DoublyCircularLinkedList`**
-  - **Files:** `playback/ShuffleMode.java`
+  - **Files:** `playback/ShuffleMode.java`, `src/test/java/com/discoballplayer/playback/ShuffleModeTest.java`
   - **Objective:** `load()` shuffles the **insertion order once**, then navigates via the
     `A1-01` cursor. Never re-shuffles inside `next()` — that would make `previous()` meaningless.
     `hasNext()`/`hasPrevious()` are always `true` for a non-empty library.
@@ -281,7 +286,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn test -Dtest=ShuffleModeTest` — all green.
 
 - [ ] **[A2-04] `ArrivalMode` over `SimpleQueue`**
-  - **Files:** `playback/ArrivalMode.java`
+  - **Files:** `playback/ArrivalMode.java`, `src/test/java/com/discoballplayer/playback/ArrivalModeTest.java`
   - **Objective:** Strict FIFO. `next()` dequeues permanently. `previous()` throws
     `UnsupportedOperationException`, `hasPrevious()` returns `false` — that disabled Previous
     button is the visible proof of FIFO at defense. `next()` on empty throws `EmptyStructureException`.
@@ -294,7 +299,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn test -Dtest=ArrivalModeTest` — all green.
 
 - [ ] **[A2-06] `AlphabeticalMode` over `BST`**
-  - **Files:** `playback/AlphabeticalMode.java`
+  - **Files:** `playback/AlphabeticalMode.java`, `src/test/java/com/discoballplayer/playback/AlphabeticalModeTest.java`
   - **Objective:** Builds a `BST<Song>` on `load()` and steps the `A1-07` cursor. Ordering comes
     from `Song.compareTo` (title, case-insensitive, tie-broken on `id`).
   - **Verification:** `mvn test -Dtest=AlphabeticalModeTest#visitsSongsInTitleOrder`
@@ -308,21 +313,21 @@ Runs in parallel with Track B. Never opens an FXML file.
 ### A3 — Player façade (`service/`)
 
 - [ ] **[A3-01] `Player` — mode delegation half**
-  - **Files:** `service/Player.java`
+  - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** Implements `PlayerService`; holds a `MusicLibrary` and the active
     `PlaybackMode`. `setMode()` calls `mode.load(library)`. `next`/`previous`/`current`/
     `hasNext`/`hasPrevious` delegate straight through.
   - **Verification:** `mvn test -Dtest=PlayerTest#setModeReloadsFromLibrary`
 
 - [ ] **[A3-02] `Player` — library CRUD half**
-  - **Files:** `service/Player.java`
+  - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** `addSong`, `removeSong`, `updateSong`, `listAll`, `search`, `rate` delegate to
     `MusicLibrary`. `rate` validates 0–100 and rethrows as `IllegalArgumentException`.
     `removeSong` on an unknown song throws `SongNotFoundException`.
   - **Verification:** `mvn test -Dtest=PlayerTest#rateRejectsOutOfRangeValues`
 
 - [ ] **[A3-03] `Player` — listener registry and event dispatch**
-  - **Files:** `service/Player.java`
+  - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** `addListener`/`removeListener` over a copy-on-write list; fire `onSongChanged`
     from `next`/`previous`, `onPlaybackStateChanged` from `play`/`pause`, `onLibraryChanged` from
     every CRUD method. A throwing listener must not break the loop.
@@ -343,13 +348,13 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn clean compile` exits 0.
 
 - [ ] **[A4-02] `LibraryMapper` between DTO and model**
-  - **Files:** `repository/LibraryMapper.java`
+  - **Files:** `repository/LibraryMapper.java`, `src/test/java/com/discoballplayer/repository/LibraryMapperTest.java`
   - **Objective:** `LibraryDto toDto(MusicLibrary)` and `MusicLibrary toModel(LibraryDto)`,
     de-duplicating `Artist` and `Album` instances by name/title on the way back.
   - **Verification:** `mvn test -Dtest=LibraryMapperTest#roundTripPreservesEveryField`
 
 - [ ] **[A4-03] `JsonLibraryRepository`**
-  - **Files:** `repository/JsonLibraryRepository.java`
+  - **Files:** `repository/JsonLibraryRepository.java`, `src/test/java/com/discoballplayer/repository/JsonLibraryRepositoryTest.java`
   - **Objective:** Reads and writes `~/.discoballplayer/library.json` via Jackson. A missing file
     means an empty library, not an exception. Write to a temp file and move, so a crash mid-save
     cannot corrupt the catalogue.
@@ -370,7 +375,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn clean compile` exits 0.
 
 - [ ] **[A5-02] `SimulatedAudioEngine` (timer-driven)**
-  - **Files:** `playback/audio/SimulatedAudioEngine.java`
+  - **Files:** `playback/audio/SimulatedAudioEngine.java`, `src/test/java/com/discoballplayer/playback/SimulatedAudioEngineTest.java`
   - **Objective:** `ScheduledExecutorService` ticking once a second up to `song.getDurationSeconds()`,
     then signalling completion. This is the guaranteed-working progress bar; real audio is a bonus.
   - **Verification:** `mvn test -Dtest=SimulatedAudioEngineTest#emitsOneTickPerSecond`
@@ -382,7 +387,7 @@ Runs in parallel with Track B. Never opens an FXML file.
   - **Verification:** `mvn test -Dtest=SimulatedAudioEngineTest` — all green.
 
 - [ ] **[A5-04] Wire `AudioEngine` into `Player`**
-  - **Files:** `service/Player.java`
+  - **Files:** `service/Player.java`, `src/test/java/com/discoballplayer/service/PlayerTest.java`
   - **Objective:** `Player` takes an `AudioEngine` by constructor, forwards `play`/`pause`, and
     republishes engine ticks as `onProgress`. On track completion it calls `next()` if `hasNext()`.
   - **Verification:** `mvn test -Dtest=PlayerTest#advancesToNextSongOnCompletion`
