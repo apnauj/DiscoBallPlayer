@@ -545,19 +545,19 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B5 — Add / edit dialog
 
-- [ ] **[B5-01] `song-dialog.fxml` form**
+- [x] **[B5-01] `song-dialog.fxml` form**
   - **Files:** `resources/com/discoballplayer/fxml/song-dialog.fxml`
   - **Objective:** `GridPane` with fields for title, artist, album, duration, genre
     (`ComboBox<Genre>`), year, rating, cover path, audio path, plus Save / Cancel.
   - **Verification:** the file loads in Scene Builder / `FXMLLoader` without error.
 
-- [ ] **[B5-02] `SongDialogController` — read and write the form**
+- [x] **[B5-02] `SongDialogController` — read and write the form**
   - **Files:** `ui/SongDialogController.java`
   - **Objective:** `setSong(Song)` fills the form for edit mode (null means create); `getResult()`
     returns a built `Song`. Validation errors mark the field, they do not throw.
   - **Verification:** `mvn javafx:run`, open the dialog, empty title is rejected with a visible message.
 
-- [ ] **[B5-03] File pickers for cover and audio**
+- [x] **[B5-03] File pickers for cover and audio**
   - **Files:** `ui/SongDialogController.java`
   - **Objective:** Two `FileChooser` buttons storing **absolute paths**. Audio files are never
     copied into `resources/`.
