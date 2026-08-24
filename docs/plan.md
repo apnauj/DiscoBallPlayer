@@ -283,14 +283,14 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
     in-order order stays sorted after each; `size` decrements correctly.
   - **Verification:** `mvn test -Dtest=BSTTest#deleteNodeWithTwoChildren`
 
-- [ ] **[A1-10] Javadoc with complexity on every public structure method**
+- [x] **[A1-10] Javadoc with complexity on every public structure method**
   - **Files:** `structures/DoublyCircularLinkedList.java`, `structures/SimpleQueue.java`, `structures/BST.java`
   - **Objective:** Every public method gets `@implNote Time complexity: O(...)`. These comments
     are the oral-defense script.
   - **Verification:** `mvn clean compile` exits 0; every public method in the three files has a
     complexity line (visual check).
 
-- [ ] **[A1-11] Fail fast when a cursor outlives a structural change**
+- [x] **[A1-11] Fail fast when a cursor outlives a structural change**
   - **Files:** `structures/DoublyCircularLinkedList.java`, `src/test/java/com/discoballplayer/structures/DoublyCircularLinkedListTest.java`
   - **Objective:** A cursor opened before an insert or delete keeps walking detached nodes and
     returns stale data instead of failing. Add a modification counter and throw

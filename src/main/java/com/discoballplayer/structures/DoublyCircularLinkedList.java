@@ -1,5 +1,6 @@
 package com.discoballplayer.structures;
 
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -26,17 +27,33 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
     private Node tail;
     private int size;
 
+    /**
+     * Bumped on every structural change, so a live {@link Cursor} can tell it is walking a
+     * list that no longer exists. Without it a stale cursor keeps traversing detached nodes
+     * and returns plausible-looking wrong answers instead of failing.
+     */
+    private int modificationCount;
+
+    /**
+     * @implNote Time complexity: O(1). The size is a maintained counter, not a walk.
+     */
     public boolean isEmpty(){
         return size == 0;
     }
 
+    /**
+     * @implNote Time complexity: O(1).
+     */
     public int size(){
         return size;
     }
 
-    /*
-     * Insert an element at the end of the list
-     * We use the tail reference that we have
+    /**
+     * Inserts an element at the tail of the ring.
+     *
+     * @throws NullPointerException if {@code data} is null
+     * @implNote Time complexity: O(1). The list holds a tail reference, so appending never
+     *           walks the chain. Without it this would be O(n).
      */
     public void insertAtEnd(T data){
         if (data == null) throw new NullPointerException("null elements not allowed");
@@ -53,8 +70,16 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
             tail = newNode;
         }
         size++;
+        modificationCount++;
     }
 
+    /**
+     * Inserts an element at the head of the ring, leaving the tail where it was.
+     *
+     * @throws NullPointerException if {@code data} is null; a null element could not be told
+     *         apart from an absent one by {@link #has}
+     * @implNote Time complexity: O(1). {@code tail.next} is the head, so no walk is needed.
+     */
     public void insertAtBeginning(T data){
         if (data == null) throw new NullPointerException("null elements not allowed");
         Node newNode = new Node(data);
@@ -69,8 +94,19 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
             newNode.prev = tail;
         }
         size++;
+        modificationCount++;
     }
 
+    /**
+     * Removes the first element equal to {@code data}.
+     *
+     * @return whether anything was removed
+     * @throws NullPointerException if {@code data} is null
+     * @implNote Time complexity: O(n). Finding the node is a linear scan — a linked list has
+     *           no index to exploit — while the unlinking itself is O(1), because every node
+     *           knows its predecessor. This runs when a user deletes a song by hand, not
+     *           during playback.
+     */
     public boolean delete(T data) {
         if (data == null) throw new NullPointerException("null elements not allowed");
         if (isEmpty()) return false;
@@ -99,9 +135,15 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
         }
 
         size--;
+        modificationCount++;
         return true;
     }
 
+    /**
+     * @return whether an element equal to {@code data} is in the list
+     * @throws NullPointerException if {@code data} is null
+     * @implNote Time complexity: O(n). There is no ordering to exploit.
+     */
     public boolean has(T data) {
         if (data == null) throw new NullPointerException("null elements not allowed");
         if (isEmpty()) return false;
@@ -115,6 +157,15 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
         return false;
     }
 
+    /**
+     * Iterates the ring once, from the head, stopping after {@link #size()} elements.
+     *
+     * <p>Bounded on purpose: the list is circular, so an iterator that stopped only on a null
+     * link would never stop at all. Playback navigates through {@link #cursor()} instead,
+     * which is unbounded by design.</p>
+     *
+     * @implNote Time complexity: O(1) per step, O(n) for a full pass.
+     */
     @Override
     public Iterator<T> iterator() {
         return new Iterator<T>() {
@@ -133,6 +184,11 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
         };
     }
 
+    /**
+     * @throws IndexOutOfBoundsException if {@code index} is outside the list
+     * @implNote Time complexity: O(n), about n/2 steps. Walks from whichever end is closer,
+     *           which halves the constant but not the complexity class.
+     */
     public T get(int index) {
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
@@ -163,16 +219,28 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
      * element it started on, which is what makes a Previous button meaningful.</p>
      *
      * <p><strong>A cursor is invalidated by any structural change to the list.</strong>
-     * Inserting or deleting while a cursor is live leaves it pointing at a detached node.
-     * Playback modes rebuild their structure on {@code load()}, so they never hit this;
-     * fail-fast detection is ticket {@code A1-11}.</p>
+     * Inserting or deleting while a cursor is live leaves it pointing at a detached node, so
+     * every method throws {@link ConcurrentModificationException} rather than returning a
+     * plausible-looking wrong answer from a part of the list nothing can reach any more.</p>
      */
     public final class Cursor {
 
         private Node node;
+        private final int expectedModificationCount;
 
         private Cursor(Node start) {
             this.node = start;
+            this.expectedModificationCount = modificationCount;
+        }
+
+        /**
+         * @throws ConcurrentModificationException if the list changed since this cursor opened
+         */
+        private void checkNotStale() {
+            if (expectedModificationCount != modificationCount) {
+                throw new ConcurrentModificationException(
+                        "The list changed after this cursor was opened; reopen it.");
+            }
         }
 
         /**
@@ -180,6 +248,7 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
          * @implNote Time complexity: O(1).
          */
         public T current() {
+            checkNotStale();
             return node.data;
         }
 
@@ -190,6 +259,7 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
          * @implNote Time complexity: O(1).
          */
         public T next() {
+            checkNotStale();
             node = node.next;
             return node.data;
         }
@@ -201,6 +271,7 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
          * @implNote Time complexity: O(1).
          */
         public T previous() {
+            checkNotStale();
             node = node.prev;
             return node.data;
         }

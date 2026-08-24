@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -182,6 +183,49 @@ class BSTTest {
             assertEquals(before, cursor.previous());
             cursor.next();
         }
+    }
+
+    @Test
+    void cursorRejectsUseAfterDelete() {
+        BST<Integer> tree = treeOf(SHAPED);
+        BST<Integer>.Cursor cursor = tree.cursor();
+
+        tree.delete(30);
+
+        assertThrows(ConcurrentModificationException.class, cursor::next,
+                "a stale parent chain does not give a wrong answer, it gives a cycle");
+        assertThrows(ConcurrentModificationException.class, cursor::hasNext);
+        assertThrows(ConcurrentModificationException.class, cursor::current);
+    }
+
+    @Test
+    void cursorRejectsUseAfterInsert() {
+        BST<Integer> tree = treeOf(SHAPED);
+        BST<Integer>.Cursor cursor = tree.cursor();
+
+        tree.insert(99);
+
+        assertThrows(ConcurrentModificationException.class, cursor::next);
+    }
+
+    @Test
+    void aDuplicateInsertDoesNotInvalidateTheCursor() {
+        BST<Integer> tree = treeOf(SHAPED);
+        BST<Integer>.Cursor cursor = tree.cursor();
+
+        tree.insert(50);
+
+        assertEquals(30, cursor.next(), "a rejected duplicate changed nothing");
+    }
+
+    @Test
+    void aDeleteOfAnAbsentValueDoesNotInvalidateTheCursor() {
+        BST<Integer> tree = treeOf(SHAPED);
+        BST<Integer>.Cursor cursor = tree.cursor();
+
+        tree.delete(9999);
+
+        assertEquals(30, cursor.next());
     }
 
     @Test

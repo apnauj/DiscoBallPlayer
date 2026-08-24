@@ -1,5 +1,6 @@
 package com.discoballplayer.structures;
 
+import java.util.ConcurrentModificationException;
 import java.util.NoSuchElementException;
 
 import com.discoballplayer.exception.EmptyStructureException;
@@ -34,6 +35,9 @@ public class BST<T extends Comparable<T>> {
     private Node<T> root;
     private int size;
 
+    /** Bumped on every structural change, so a live {@link Cursor} can detect staleness. */
+    private int modificationCount;
+
     // ---------- modification ----------
 
     /**
@@ -52,6 +56,7 @@ public class BST<T extends Comparable<T>> {
     private Node<T> insertRecursive(Node<T> current, T value, Node<T> parent) {
         if (current == null) {
             size++;
+            modificationCount++;
             return new Node<>(value, parent);
         }
 
@@ -77,9 +82,13 @@ public class BST<T extends Comparable<T>> {
         if (value == null) {
             return;
         }
+        int before = size;
         root = deleteRecursive(root, value);
         if (root != null) {
             root.parent = null;
+        }
+        if (size != before) {
+            modificationCount++;
         }
     }
 
@@ -241,20 +250,36 @@ public class BST<T extends Comparable<T>> {
      * the largest element and {@link #hasPrevious()} is false on the smallest. That is what
      * lets {@code AlphabeticalMode} disable its buttons at the boundaries.</p>
      *
-     * <p>A cursor is invalidated by any structural change to the tree.</p>
+     * <p>A cursor is invalidated by any structural change to the tree: every method throws
+     * {@link ConcurrentModificationException} rather than walking nodes the tree no longer
+     * contains. Deletion is the dangerous case — a stale parent chain does not give a wrong
+     * answer, it gives a cycle.</p>
      */
     public final class Cursor {
 
         private Node<T> node;
+        private final int expectedModificationCount;
 
         private Cursor(Node<T> start) {
             this.node = start;
+            this.expectedModificationCount = modificationCount;
+        }
+
+        /**
+         * @throws ConcurrentModificationException if the tree changed since this cursor opened
+         */
+        private void checkNotStale() {
+            if (expectedModificationCount != modificationCount) {
+                throw new ConcurrentModificationException(
+                        "The tree changed after this cursor was opened; reopen it.");
+            }
         }
 
         /**
          * @implNote Time complexity: O(1).
          */
         public T current() {
+            checkNotStale();
             return node.value;
         }
 
@@ -262,6 +287,7 @@ public class BST<T extends Comparable<T>> {
          * @implNote Time complexity: O(log n) average, O(n) worst case.
          */
         public boolean hasNext() {
+            checkNotStale();
             return successor(node) != null;
         }
 
@@ -270,6 +296,7 @@ public class BST<T extends Comparable<T>> {
          * @implNote Time complexity: O(log n) average, O(n) worst case.
          */
         public T next() {
+            checkNotStale();
             Node<T> following = successor(node);
             if (following == null) {
                 throw new NoSuchElementException("Already at the last element.");
@@ -282,6 +309,7 @@ public class BST<T extends Comparable<T>> {
          * @implNote Time complexity: O(log n) average, O(n) worst case.
          */
         public boolean hasPrevious() {
+            checkNotStale();
             return predecessor(node) != null;
         }
 
@@ -290,6 +318,7 @@ public class BST<T extends Comparable<T>> {
          * @implNote Time complexity: O(log n) average, O(n) worst case.
          */
         public T previous() {
+            checkNotStale();
             Node<T> preceding = predecessor(node);
             if (preceding == null) {
                 throw new NoSuchElementException("Already at the first element.");
