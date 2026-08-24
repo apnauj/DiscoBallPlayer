@@ -479,7 +479,7 @@ background timer thread and touching a node off the FX thread throws at runtime.
     `coverPath` falls back to `images/default-cover.png` — never an exception, never a blank box.
   - **Verification:** `mvn javafx:run`, press Next, metadata changes.
 
-- [ ] **[B3-03] Default cover asset**
+- [x] **[B3-03] Default cover asset**
   - **Files:** `resources/com/discoballplayer/images/default-cover.png`
   - **Objective:** Ship a 512×512 placeholder so `B3-02`'s fallback resolves.
   - **Verification:** the file exists and `mvn javafx:run` renders it for a song with no cover.
