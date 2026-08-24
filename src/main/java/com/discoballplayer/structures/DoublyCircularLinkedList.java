@@ -3,6 +3,8 @@ package com.discoballplayer.structures;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.discoballplayer.exception.EmptyStructureException;
+
 public class DoublyCircularLinkedList<T> implements Iterable<T> {
     private class Node {
         T data;
@@ -151,6 +153,70 @@ public class DoublyCircularLinkedList<T> implements Iterable<T> {
         return curr.data;
     }
 
+    /**
+     * A movable pointer into the ring, used to walk the list forward and backward without
+     * exposing {@code Node}.
+     *
+     * <p>{@code ShuffleMode} navigates through this. Because the list is circular there is no
+     * end: past the last element the cursor lands on the first, and before the first it lands
+     * on the last. {@link #next()} followed by {@link #previous()} always returns to the
+     * element it started on, which is what makes a Previous button meaningful.</p>
+     *
+     * <p><strong>A cursor is invalidated by any structural change to the list.</strong>
+     * Inserting or deleting while a cursor is live leaves it pointing at a detached node.
+     * Playback modes rebuild their structure on {@code load()}, so they never hit this;
+     * fail-fast detection is ticket {@code A1-11}.</p>
+     */
+    public final class Cursor {
 
+        private Node node;
+
+        private Cursor(Node start) {
+            this.node = start;
+        }
+
+        /**
+         * @return the element the cursor currently points at, without moving
+         * @implNote Time complexity: O(1).
+         */
+        public T current() {
+            return node.data;
+        }
+
+        /**
+         * Advances one position, wrapping from the last element to the first.
+         *
+         * @return the element landed on
+         * @implNote Time complexity: O(1).
+         */
+        public T next() {
+            node = node.next;
+            return node.data;
+        }
+
+        /**
+         * Steps back one position, wrapping from the first element to the last.
+         *
+         * @return the element landed on
+         * @implNote Time complexity: O(1).
+         */
+        public T previous() {
+            node = node.prev;
+            return node.data;
+        }
+    }
+
+    /**
+     * Opens a cursor positioned on the first element.
+     *
+     * @throws EmptyStructureException if the list is empty; an empty ring has no position to
+     *         point at, and returning {@code null} would push that check onto every caller
+     * @implNote Time complexity: O(1).
+     */
+    public Cursor cursor() {
+        if (isEmpty()) {
+            throw new EmptyStructureException("Cannot open a cursor on an empty list.");
+        }
+        return new Cursor(tail.next);
+    }
 }
-
