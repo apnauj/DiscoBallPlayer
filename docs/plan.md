@@ -56,6 +56,15 @@ One `.git` is shared, so both sessions see the same branches and the same `origi
 index and the working tree are independent. A branch checked out in one worktree cannot be
 checked out in the other, which is the guard rail that makes this safe.
 
+**Neither session parks on `develop`.** That same guard rail cuts both ways: whoever holds
+`develop` blocks the other from checking it out. Branch straight off the remote instead, which
+never needs a local `develop` at all:
+
+```bash
+git fetch --prune
+git checkout -b feature/<ticket>-<slug> origin/develop
+```
+
 Two sessions run concurrently on **disjoint file sets**. Ownership is absolute — if you need a
 change in a file you do not own, write it under "Cross-track requests" at the bottom of this
 file and keep working on something else.
@@ -319,13 +328,13 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
     `next()` throws; `hasPrevious()` is false at every step; the source `MusicLibrary` is untouched.
   - **Verification:** `mvn test -Dtest=ArrivalModeTest` — all green.
 
-- [ ] **[A2-06] `AlphabeticalMode` over `BST`**
+- [x] **[A2-06] `AlphabeticalMode` over `BST`**
   - **Files:** `playback/AlphabeticalMode.java`, `src/test/java/com/discoballplayer/playback/AlphabeticalModeTest.java`
   - **Objective:** Builds a `BST<Song>` on `load()` and steps the `A1-07` cursor. Ordering comes
     from `Song.compareTo` (title, case-insensitive, tie-broken on `id`).
   - **Verification:** `mvn test -Dtest=AlphabeticalModeTest#visitsSongsInTitleOrder`
 
-- [ ] **[A2-07] Test suite for `AlphabeticalMode`**
+- [x] **[A2-07] Test suite for `AlphabeticalMode`**
   - **Files:** `src/test/java/com/discoballplayer/playback/AlphabeticalModeTest.java`
   - **Objective:** Title order forward; reverse order backward; `hasNext()` false at the last
     song; `hasPrevious()` false at the first; unsorted library input still yields sorted output.
