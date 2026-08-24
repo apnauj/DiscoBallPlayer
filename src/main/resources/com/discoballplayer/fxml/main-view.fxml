@@ -2,20 +2,19 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <!--
     Application shell: the three regions every later Track B ticket fills in.
 
       left    sidebar        mode selector (B4-03) and filters
-      center  library        the song table (B2-01)
+      center  library        search box and the song table
       bottom  now playing    cover, metadata, progress and transport (B3, B4)
-
-    The containers are deliberately empty. Only the fx:ids and the region chrome live here,
-    so that adding a control later is a change in one place and never a re-layout.
 -->
 <BorderPane fx:id="rootPane"
             xmlns="http://javafx.com/javafx"
@@ -42,11 +41,33 @@
     </left>
 
     <center>
-        <StackPane fx:id="libraryContainer" styleClass="library-region">
+        <VBox fx:id="libraryContainer" styleClass="library-region" spacing="12">
             <padding>
                 <Insets top="20" right="20" bottom="20" left="20"/>
             </padding>
-        </StackPane>
+
+            <TextField fx:id="searchField" styleClass="search-field"
+                       promptText="Search by title, artist or album"/>
+
+            <!--
+                The resize policy is what makes the columns share the width proportionally to
+                their prefWidth, so the table grows with the window instead of leaving a gap.
+            -->
+            <TableView fx:id="libraryTable" styleClass="library-table" VBox.vgrow="ALWAYS">
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/>
+                </columnResizePolicy>
+                <columns>
+                    <TableColumn fx:id="titleColumn" text="Title" prefWidth="230"/>
+                    <TableColumn fx:id="artistColumn" text="Artist" prefWidth="170"/>
+                    <TableColumn fx:id="albumColumn" text="Album" prefWidth="170"/>
+                    <TableColumn fx:id="durationColumn" text="Duration" prefWidth="90"/>
+                    <TableColumn fx:id="genreColumn" text="Genre" prefWidth="110"/>
+                    <TableColumn fx:id="yearColumn" text="Year" prefWidth="80"/>
+                    <TableColumn fx:id="ratingColumn" text="Rating" prefWidth="80"/>
+                </columns>
+            </TableView>
+        </VBox>
     </center>
 
     <bottom>

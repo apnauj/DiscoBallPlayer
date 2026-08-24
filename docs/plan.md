@@ -413,7 +413,7 @@ background timer thread and touching a node off the FX thread throws at runtime.
     no controls yet.
   - **Verification:** `mvn javafx:run` opens a window with three visibly distinct regions.
 
-- [ ] **[B1-02] `MainController` holds a `PlayerService`**
+- [x] **[B1-02] `MainController` holds a `PlayerService`**
   - **Files:** `ui/MainController.java`
   - **Objective:** Field `private PlayerService player = new DemoPlayerService();` (one line to
     swap in `C-01`), plus `initialize()` registering the controller as a `PlaybackListener`.
@@ -421,19 +421,19 @@ background timer thread and touching a node off the FX thread throws at runtime.
 
 ### B2 — Library view
 
-- [ ] **[B2-01] Library `TableView` columns**
+- [x] **[B2-01] Library `TableView` columns**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`
   - **Objective:** `TableView<Song>` with columns Title, Artist, Album, Duration, Genre, Year,
     Rating. Column widths proportional; the table grows with the window.
   - **Verification:** `mvn javafx:run` shows seven headed columns.
 
-- [ ] **[B2-02] Populate the table from `player.listAll()`**
+- [x] **[B2-02] Populate the table from `player.listAll()`**
   - **Files:** `ui/MainController.java`
   - **Objective:** Bind cell value factories, load rows in `initialize()`, refresh on
     `onLibraryChanged`. Duration renders through `TimeFormatter.mmss`.
   - **Verification:** `mvn javafx:run` lists the 12 demo songs with formatted durations.
 
-- [ ] **[B2-03] Search box filtering the table**
+- [x] **[B2-03] Search box filtering the table**
   - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
   - **Objective:** A `TextField` whose text listener calls `player.search(query)` and replaces the
     table's items. Empty query restores the full list.
@@ -790,4 +790,9 @@ The ticket's verification command.
 Append here when you need something from a file the other track owns. Format:
 `- [ ] (from Track X to Track Y) <what and why>`.
 
-- _(empty)_
+- [ ] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
+  The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership
+  table assigns all of `src/test/` to Track A and no Track B ticket names a test file, so a
+  UI pull request cannot satisfy the rule as written. Until this is granted, Track B verifies
+  by loading the real FXML through `FXMLLoader`, rendering the scene off-screen and reading
+  the result, which catches injection and binding failures but leaves nothing in the suite.
