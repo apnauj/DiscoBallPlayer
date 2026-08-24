@@ -11,7 +11,10 @@ complexity for insertion, deletion, search and traversal.
 `docs/plan.md` is the single source of truth for what is done and what is next.
 
 1. Read it before starting any work. Pick the lowest-numbered unticked ticket in **your track**.
-2. Do exactly one ticket per branch and per pull request. Never batch tickets.
+2. One branch and one pull request per **coherent unit**: a single structure, a single
+   playback mode, a single UI panel — implementation plus the tests that verify it. Group the
+   tickets that make up that unit; never mix two units in one PR. A PR that ships production
+   code without its test is not a coherent unit.
 3. Tick the box (`- [ ]` → `- [x]`) **in the same PR as the work**, only after the ticket's
    verification command passes.
 4. Never edit a ticket owned by the other track, and never edit a file the ownership table
@@ -78,8 +81,8 @@ can run on `DemoPlayerService` while the real `Player` is still being written.
 
 | Track | Owns |
 |---|---|
-| A (backend) | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/` (except the demo), `module-info.java`, all of `src/test/` |
-| B (UI) | `ui/`, `fxml/`, `css/`, `images/`, `service/DemoPlayerService.java` |
+| A (backend) | `structures/`, `playback/`, `repository/`, `util/`, `exception/`, `model/`, `service/` (except the demo), `module-info.java`, `src/test/` except `src/test/java/com/discoballplayer/ui/` |
+| B (UI) | `ui/`, `fxml/`, `css/`, `images/`, `service/DemoPlayerService.java`, `src/test/java/com/discoballplayer/ui/` |
 
 `module-info.java` was finalized in `F0-09` and is not edited again.
 
@@ -100,8 +103,14 @@ can run on `DemoPlayerService` while the real `Player` is still being written.
 
 ## Testing
 
-Tests live in `src/test/java` mirroring the main packages. Structures carry 35% of the grade,
-so they carry the tests. Minimum before a structure PR merges:
+Tests live in `src/test/java` mirroring the main packages. Test classes are **flat**: under
+`@Nested` the outer class matches `-Dtest=Class#method` and runs zero tests, so a verification
+command reports success while testing nothing.
+
+**`Tests run: 0` is a failure even when Maven prints `BUILD SUCCESS`.** Surefire fails on an
+unmatched test class but not on an unmatched test method. Read the count, not the colour.
+
+Structures carry 35% of the grade, so they carry the tests. Minimum before a structure PR merges:
 
 - **`DoublyCircularLinkedList`** — insert into empty; wrap forward and backward; delete head,
   tail, middle and only element; size correct throughout.
@@ -115,6 +124,14 @@ so they carry the tests. Minimum before a structure PR merges:
 
 GitFlow. `main` and `develop` are long-lived; everything else is deleted after merge.
 Branch names are lowercase English with the ticket code: `feature/a1-03-simple-queue`.
+
+**Two sessions never share a working directory.** One `HEAD` and one index between two agents
+means one session's checkout rewrites the other's working tree and its commits land on the
+wrong branch. Track B works from a separate worktree:
+
+```bash
+git worktree add ../DiscoBallPlayer-ui develop   # once, from the main checkout
+```
 
 ```bash
 git checkout develop && git pull origin develop
