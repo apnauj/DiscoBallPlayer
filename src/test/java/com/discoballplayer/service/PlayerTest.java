@@ -19,6 +19,7 @@ import com.discoballplayer.model.Genre;
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.playback.PlaybackMode;
+import com.discoballplayer.playback.audio.AudioEngine;
 
 /**
  * Player is exercised against a stub {@link PlaybackMode}, not the real modes.
@@ -113,6 +114,30 @@ class PlayerTest {
         }
     }
 
+
+    /** Records engine calls and lets a test fire the engine's callbacks by hand. */
+    private static final class FakeAudio implements AudioEngine {
+        final List<String> calls = new ArrayList<>();
+        java.util.function.IntConsumer progress = elapsed -> { };
+        Runnable completion = () -> { };
+        Song loaded;
+
+        @Override public void load(Song song) { loaded = song; calls.add("load:" + song.getTitle()); }
+        @Override public void play() { calls.add("play"); }
+        @Override public void pause() { calls.add("pause"); }
+        @Override public void stop() { calls.add("stop"); }
+        @Override public int elapsedSeconds() { return 0; }
+        @Override public void setProgressCallback(java.util.function.IntConsumer c) { progress = c; }
+        @Override public void setCompletionCallback(Runnable c) { completion = c; }
+        @Override public void dispose() { calls.add("dispose"); }
+    }
+
+    private final FakeAudio audio = new FakeAudio();
+
+    private Player newPlayer(MusicLibrary library) {
+        return new Player(library, audio);
+    }
+
     // ---------- fixtures ----------
 
     private static Song song(String title) {
@@ -132,7 +157,7 @@ class PlayerTest {
     @Test
     void setModeReloadsFromLibrary() {
         MusicLibrary library = libraryOf("A", "B");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
         StubMode mode = new StubMode();
 
         player.setMode(mode);
@@ -144,7 +169,7 @@ class PlayerTest {
 
     @Test
     void navigationDelegatesToTheMode() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         StubMode mode = new StubMode();
         player.setMode(mode);
 
@@ -155,7 +180,7 @@ class PlayerTest {
 
     @Test
     void hasNextAndHasPreviousDelegateToTheMode() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         StubMode mode = new StubMode();
         player.setMode(mode);
 
@@ -169,7 +194,7 @@ class PlayerTest {
 
     @Test
     void navigationWithoutAModeFailsLoudly() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
 
         assertThrows(IllegalStateException.class, player::next);
         assertThrows(IllegalStateException.class, player::previous);
@@ -177,7 +202,7 @@ class PlayerTest {
 
     @Test
     void queriesWithoutAModeAreSafe() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
 
         assertNull(player.current());
         assertFalse(player.hasNext());
@@ -187,7 +212,7 @@ class PlayerTest {
 
     @Test
     void modeExceptionsReachTheCallerUnchanged() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         StubMode mode = new StubMode();
         player.setMode(mode);
         mode.nextThrows = true;
@@ -200,7 +225,7 @@ class PlayerTest {
 
     @Test
     void setModeRejectsNull() {
-        assertThrows(NullPointerException.class, () -> new Player(libraryOf("A")).setMode(null));
+        assertThrows(NullPointerException.class, () -> newPlayer(libraryOf("A")).setMode(null));
     }
 
     // ---------- library CRUD (A3-02) ----------
@@ -208,7 +233,7 @@ class PlayerTest {
     @Test
     void addSongPutsItInTheLibrary() {
         MusicLibrary library = libraryOf("A");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
 
         player.addSong(song("B"));
 
@@ -217,7 +242,7 @@ class PlayerTest {
 
     @Test
     void removeSongRejectsAnUnknownSong() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
 
         assertThrows(SongNotFoundException.class, () -> player.removeSong(song("Ghost")));
     }
@@ -225,7 +250,7 @@ class PlayerTest {
     @Test
     void removeSongTakesItOutOfTheLibrary() {
         MusicLibrary library = libraryOf("A", "B");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
         Song target = library.getAllSongs().get(0);
 
         player.removeSong(target);
@@ -235,14 +260,14 @@ class PlayerTest {
 
     @Test
     void updateSongRejectsAnUnknownSong() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
 
         assertThrows(SongNotFoundException.class, () -> player.updateSong(song("Ghost")));
     }
 
     @Test
     void searchDelegatesToTheLibrary() {
-        Player player = new Player(libraryOf("Bailando", "Tania"));
+        Player player = newPlayer(libraryOf("Bailando", "Tania"));
 
         assertEquals(1, player.search("bail").size());
         assertEquals(2, player.search("").size(), "a blank query returns everything");
@@ -251,7 +276,7 @@ class PlayerTest {
     @Test
     void rateRejectsOutOfRangeValues() {
         MusicLibrary library = libraryOf("A");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
         Song target = library.getAllSongs().get(0);
 
         assertThrows(IllegalArgumentException.class, () -> player.rate(target, -1));
@@ -261,7 +286,7 @@ class PlayerTest {
     @Test
     void rateAcceptsTheInclusiveBounds() {
         MusicLibrary library = libraryOf("A");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
         Song target = library.getAllSongs().get(0);
 
         player.rate(target, 0);
@@ -272,7 +297,7 @@ class PlayerTest {
 
     @Test
     void rateRejectsASongOutsideTheLibrary() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
 
         assertThrows(SongNotFoundException.class, () -> player.rate(song("Ghost"), 50));
     }
@@ -281,7 +306,7 @@ class PlayerTest {
 
     @Test
     void notifiesListenersOnSongChange() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         RecordingListener listener = new RecordingListener();
         player.addListener(listener);
         player.setMode(new StubMode());
@@ -294,7 +319,7 @@ class PlayerTest {
     @Test
     void notifiesListenersOnLibraryChange() {
         MusicLibrary library = libraryOf("A");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
         RecordingListener listener = new RecordingListener();
         player.addListener(listener);
 
@@ -307,7 +332,7 @@ class PlayerTest {
 
     @Test
     void notifiesListenersOnPlaybackStateChange() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         player.setMode(new StubMode());
         RecordingListener listener = new RecordingListener();
         player.addListener(listener);
@@ -320,7 +345,7 @@ class PlayerTest {
 
     @Test
     void repeatedPlayDoesNotRefireTheStateEvent() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         player.setMode(new StubMode());
         player.play();
         RecordingListener listener = new RecordingListener();
@@ -334,7 +359,7 @@ class PlayerTest {
 
     @Test
     void playStartsTheFirstSongWhenNothingIsPlaying() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         player.setMode(new StubMode());
 
         player.play();
@@ -344,21 +369,24 @@ class PlayerTest {
     }
 
     @Test
-    void playOnAnExhaustedModeDoesNotThrow() {
-        Player player = new Player(libraryOf("A"));
+    void playOnAnExhaustedModeDoesNothingRatherThanClaimingToPlay() {
+        Player player = newPlayer(libraryOf("A"));
         StubMode mode = new StubMode();
         player.setMode(mode);
         mode.exhausted = true;
+        audio.calls.clear();
 
         player.play();
 
-        assertTrue(player.isPlaying());
         assertNull(player.current());
+        assertFalse(player.isPlaying(),
+                "reporting playback with nothing loaded would show a Pause button over silence");
+        assertTrue(audio.calls.isEmpty());
     }
 
     @Test
     void aThrowingListenerDoesNotStopTheOthers() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         player.setMode(new StubMode());
         player.addListener(new PlaybackListener() {
             @Override public void onSongChanged(Song song) { throw new IllegalStateException("boom"); }
@@ -377,7 +405,7 @@ class PlayerTest {
 
     @Test
     void removedListenersStopReceivingEvents() {
-        Player player = new Player(libraryOf("A"));
+        Player player = newPlayer(libraryOf("A"));
         player.setMode(new StubMode());
         RecordingListener listener = new RecordingListener();
         player.addListener(listener);
@@ -391,7 +419,7 @@ class PlayerTest {
     @Test
     void addingASongDoesNotReloadTheActiveMode() {
         MusicLibrary library = libraryOf("A");
-        Player player = new Player(library);
+        Player player = newPlayer(library);
         StubMode mode = new StubMode();
         player.setMode(mode);
 
@@ -399,5 +427,128 @@ class PlayerTest {
 
         assertEquals(1, mode.loadCount,
                 "a mode owns a snapshot; reloading would reset shuffle order and refill a drained queue");
+    }
+
+    // ---------- audio engine wiring (A5-04) ----------
+
+    @Test
+    void navigationLoadsTheSongIntoTheEngine() {
+        Player player = newPlayer(libraryOf("A"));
+        player.setMode(new StubMode());
+
+        player.next();
+
+        assertTrue(audio.calls.contains("load:next-1"));
+        assertEquals("next-1", audio.loaded.getTitle());
+    }
+
+    @Test
+    void navigatingWhilePausedDoesNotStartTheEngine() {
+        Player player = newPlayer(libraryOf("A"));
+        player.setMode(new StubMode());
+
+        player.next();
+
+        assertFalse(audio.calls.contains("play"), "navigating while paused must stay paused");
+    }
+
+    @Test
+    void navigatingWhilePlayingKeepsPlaying() {
+        Player player = newPlayer(libraryOf("A"));
+        player.setMode(new StubMode());
+        player.play();
+        audio.calls.clear();
+
+        player.next();
+
+        assertEquals(List.of("load:next-1", "play"), audio.calls);
+    }
+
+    @Test
+    void pauseStopsTheEngine() {
+        Player player = newPlayer(libraryOf("A"));
+        player.setMode(new StubMode());
+        player.play();
+        audio.calls.clear();
+
+        player.pause();
+
+        assertEquals(List.of("pause"), audio.calls);
+    }
+
+    @Test
+    void switchingModesStopsTheEngine() {
+        Player player = newPlayer(libraryOf("A"));
+        player.setMode(new StubMode());
+        player.play();
+        audio.calls.clear();
+
+        player.setMode(new StubMode());
+
+        assertTrue(audio.calls.contains("stop"));
+        assertFalse(player.isPlaying());
+    }
+
+    @Test
+    void engineProgressIsRepublishedWithTheSongDuration() {
+        Player player = newPlayer(libraryOf("A"));
+        player.setMode(new StubMode());
+        player.next();
+        RecordingListener listener = new RecordingListener();
+        player.addListener(listener);
+
+        audio.progress.accept(42);
+
+        assertEquals(List.of("progress:42/180"), listener.events);
+    }
+
+    @Test
+    void progressBeforeAnySongIsIgnored() {
+        Player player = newPlayer(libraryOf("A"));
+        RecordingListener listener = new RecordingListener();
+        player.addListener(listener);
+
+        audio.progress.accept(5);
+
+        assertTrue(listener.events.isEmpty(), "no current song means no consistent total to send");
+    }
+
+    @Test
+    void advancesToNextSongOnCompletion() {
+        Player player = newPlayer(libraryOf("A"));
+        StubMode mode = new StubMode();
+        player.setMode(mode);
+        player.play();
+        audio.calls.clear();
+
+        audio.completion.run();
+
+        assertEquals(List.of("load:next-1", "play", "play"), audio.calls,
+                "the next song is loaded and started");
+    }
+
+    @Test
+    void completionOnTheLastSongStopsPlaybackInsteadOfThrowing() {
+        Player player = newPlayer(libraryOf("A"));
+        StubMode mode = new StubMode();
+        player.setMode(mode);
+        player.play();
+        mode.exhausted = true;
+        RecordingListener listener = new RecordingListener();
+        player.addListener(listener);
+
+        audio.completion.run();
+
+        assertFalse(player.isPlaying());
+        assertEquals(List.of("playing:false"), listener.events);
+    }
+
+    @Test
+    void disposeReleasesTheEngine() {
+        Player player = newPlayer(libraryOf("A"));
+
+        player.dispose();
+
+        assertTrue(audio.calls.contains("dispose"));
     }
 }

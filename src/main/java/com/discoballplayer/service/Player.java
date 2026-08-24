@@ -10,6 +10,7 @@ import com.discoballplayer.exception.SongNotFoundException;
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.playback.PlaybackMode;
+import com.discoballplayer.playback.audio.AudioEngine;
 
 /**
  * The facade the UI talks to, and the only place playback and the catalogue meet.
@@ -30,13 +31,45 @@ public class Player implements PlayerService {
     private static final Logger LOG = Logger.getLogger(Player.class.getName());
 
     private final MusicLibrary library;
+    private final AudioEngine audio;
     private final List<PlaybackListener> listeners = new CopyOnWriteArrayList<>();
 
     private PlaybackMode mode;
     private boolean playing;
 
-    public Player(MusicLibrary library) {
+    public Player(MusicLibrary library, AudioEngine audio) {
         this.library = Objects.requireNonNull(library, "The library can't be null.");
+        this.audio = Objects.requireNonNull(audio, "The audio engine can't be null.");
+        audio.setProgressCallback(this::onEngineProgress);
+        audio.setCompletionCallback(this::onSongCompleted);
+    }
+
+    /**
+     * Republishes an engine tick as a progress event.
+     *
+     * <p>The total comes from the current song rather than from the engine, so the UI always
+     * receives a consistent pair even if a song change races a tick.</p>
+     */
+    private void onEngineProgress(int elapsedSeconds) {
+        Song song = current();
+        if (song != null) {
+            dispatch(listener -> listener.onProgress(elapsedSeconds, song.getDurationSeconds()));
+        }
+    }
+
+    /**
+     * Advances to the next song when one finishes.
+     *
+     * <p>At the end of the last song in a finite mode there is nothing to advance to, so
+     * playback simply stops. Shuffle never reaches this state: its ring has no end.</p>
+     */
+    private void onSongCompleted() {
+        if (hasNext()) {
+            next();
+            audio.play();
+        } else {
+            setPlaying(false);
+        }
     }
 
     // ---------- mode delegation ----------
@@ -45,6 +78,7 @@ public class Player implements PlayerService {
     public void setMode(PlaybackMode mode) {
         this.mode = Objects.requireNonNull(mode, "The playback mode can't be null.");
         mode.load(library);
+        audio.stop();
         setPlaying(false);
     }
 
@@ -62,15 +96,26 @@ public class Player implements PlayerService {
 
     @Override
     public Song next() {
-        Song song = requireMode().next();
-        fireSongChanged(song);
-        return song;
+        return startPlaying(requireMode().next());
     }
 
     @Override
     public Song previous() {
-        Song song = requireMode().previous();
+        return startPlaying(requireMode().previous());
+    }
+
+    /**
+     * Hands a newly selected song to the engine and announces it.
+     *
+     * <p>The engine is loaded but not started here: navigating while paused must stay paused,
+     * and a caller that wants sound calls {@link #play()}.</p>
+     */
+    private Song startPlaying(Song song) {
+        audio.load(song);
         fireSongChanged(song);
+        if (playing) {
+            audio.play();
+        }
         return song;
     }
 
@@ -96,12 +141,24 @@ public class Player implements PlayerService {
         if (current() == null && hasNext()) {
             next();
         }
+        if (current() == null) {
+            return;
+        }
         setPlaying(true);
+        audio.play();
     }
 
     @Override
     public void pause() {
+        audio.pause();
         setPlaying(false);
+    }
+
+    /**
+     * Releases the audio engine's threads. Called once, when the application shuts down.
+     */
+    public void dispose() {
+        audio.dispose();
     }
 
     private void setPlaying(boolean value) {
