@@ -375,27 +375,27 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
 
 ### A4 — JSON persistence (`repository/`)
 
-- [ ] **[A4-01] Jackson DTOs for the model**
+- [x] **[A4-01] Jackson DTOs for the model**
   - **Files:** `repository/dto/SongDto.java`, `repository/dto/LibraryDto.java`
   - **Objective:** `Song` has no no-arg constructor and a final generated `id`, so Jackson cannot
     bind it directly. Flat DTOs carry `id`, title, artist names, album title, duration, genre,
     year, rating, coverPath, audioPath. **Do not add Jackson annotations to `model/`.**
   - **Verification:** `mvn clean compile` exits 0.
 
-- [ ] **[A4-02] `LibraryMapper` between DTO and model**
+- [x] **[A4-02] `LibraryMapper` between DTO and model**
   - **Files:** `repository/LibraryMapper.java`, `src/test/java/com/discoballplayer/repository/LibraryMapperTest.java`
   - **Objective:** `LibraryDto toDto(MusicLibrary)` and `MusicLibrary toModel(LibraryDto)`,
     de-duplicating `Artist` and `Album` instances by name/title on the way back.
   - **Verification:** `mvn test -Dtest=LibraryMapperTest#roundTripPreservesEveryField`
 
-- [ ] **[A4-03] `JsonLibraryRepository`**
+- [x] **[A4-03] `JsonLibraryRepository`**
   - **Files:** `repository/JsonLibraryRepository.java`, `src/test/java/com/discoballplayer/repository/JsonLibraryRepositoryTest.java`
   - **Objective:** Reads and writes `~/.discoballplayer/library.json` via Jackson. A missing file
     means an empty library, not an exception. Write to a temp file and move, so a crash mid-save
     cannot corrupt the catalogue.
   - **Verification:** `mvn test -Dtest=JsonLibraryRepositoryTest#missingFileYieldsEmptyLibrary`
 
-- [ ] **[A4-04] Test suite for the repository**
+- [x] **[A4-04] Test suite for the repository**
   - **Files:** `src/test/java/com/discoballplayer/repository/JsonLibraryRepositoryTest.java`
   - **Objective:** Save-then-load round trip over `@TempDir`; missing file; malformed JSON
     surfaces a clear exception rather than a Jackson stack trace.
