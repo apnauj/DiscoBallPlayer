@@ -642,7 +642,7 @@ Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these 
   - **Objective:** `mvn clean test` with every suite passing and no skipped tests.
   - **Verification:** `mvn clean test` — `Failures: 0, Errors: 0, Skipped: 0`.
 
-- [ ] **[C-05] Align `README.md` with the locked names**
+- [x] **[C-05] Align `README.md` with the locked names**
   - **Files:** `README.md`
   - **Objective:** `BinarySearchTree` → `BST` in the modes table and the layout tree; add
     `service/PlayerService` to the architecture diagram; point at `docs/plan.md`.
@@ -660,7 +660,7 @@ Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these 
     three structures, each row justified in one sentence.
   - **Verification:** nine populated rows, every cell justified.
 
-- [ ] **[C-08] Rubric self-audit**
+- [x] **[C-08] Rubric self-audit**
   - **Files:** `docs/rubric-check.md`
   - **Objective:** One row per rubric criterion with the files and tests that satisfy it, plus an
     explicit `grep` proving no `java.util` collection is used as a playback structure.
@@ -866,6 +866,16 @@ Append here when you need something from a file the other track owns. Format:
   edit reaches it; reverting to a self-built service fails it with "the view is showing a
   catalogue nobody injected". `C-02` is unblocked — compose through
   `FXMLLoader.setControllerFactory`.
+
+- [ ] (from Track B to Track A) `A1-10` is still open on `DoublyCircularLinkedList`.
+  `BST` and `SimpleQueue` carry `Time complexity` on every public method; the list carries it
+  on none of its eleven — the four matches in that file are all inside `Cursor`. `CLAUDE.md`
+  calls these comments the oral-defense script and structures are 35% of the grade, so of
+  everything still unticked this is the one that touches the heaviest criterion. Recorded in
+  `docs/rubric-check.md` under Open items. The file is Track A's; Track B did not touch it.
+  Re-check with
+  `grep -c "Time complexity" src/main/java/com/discoballplayer/structures/DoublyCircularLinkedList.java`
+  — currently `4`.
 
 - [x] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
   The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership
