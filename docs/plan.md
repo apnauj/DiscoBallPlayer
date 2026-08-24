@@ -286,21 +286,21 @@ coverage baseline in `CLAUDE.md`; they never create it from nothing.
 
 ### A2 — Playback modes (`playback/`)
 
-- [ ] **[A2-01] `AbstractPlaybackMode` shared base**
+- [x] **[A2-01] `AbstractPlaybackMode` shared base**
   - **Files:** `playback/AbstractPlaybackMode.java`
   - **Objective:** Holds `current` and the `MusicLibrary` reference; default `previous()` /
     `hasPrevious()`. Subclasses override only what differs. This is the project's one justified
     use of inheritance — do not force it elsewhere.
   - **Verification:** `mvn clean compile` exits 0.
 
-- [ ] **[A2-02] `ShuffleMode` over `DoublyCircularLinkedList`**
+- [x] **[A2-02] `ShuffleMode` over `DoublyCircularLinkedList`**
   - **Files:** `playback/ShuffleMode.java`, `src/test/java/com/discoballplayer/playback/ShuffleModeTest.java`
   - **Objective:** `load()` shuffles the **insertion order once**, then navigates via the
     `A1-01` cursor. Never re-shuffles inside `next()` — that would make `previous()` meaningless.
     `hasNext()`/`hasPrevious()` are always `true` for a non-empty library.
   - **Verification:** `mvn test -Dtest=ShuffleModeTest#nextThenPreviousReturnsToSameSong`
 
-- [ ] **[A2-03] Test suite for `ShuffleMode`**
+- [x] **[A2-03] Test suite for `ShuffleMode`**
   - **Files:** `src/test/java/com/discoballplayer/playback/ShuffleModeTest.java`
   - **Objective:** Wraps infinitely forward and backward; `next()` then `previous()` returns the
     same song; two `load()` calls on the same library produce different orders (seeded, tolerant).
