@@ -621,7 +621,7 @@ Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these 
   - **Verification:** `mvn javafx:run` still opens on demo data; `new MainController(service)`
     compiles.
 
-- [ ] **[C-02] Compose the object graph in `Main`** *(Track A, needs `C-01`)*
+- [x] **[C-02] Compose the object graph in `Main`** *(Track A, needs `C-01`)*
   - **Files:** `Main.java`
   - **Objective:** Build `JsonLibraryRepository` → `MusicLibrary` (seeded from `SampleLibrary`
     when empty) → `SimulatedAudioEngine` → `Player`, inject it through
@@ -848,6 +848,10 @@ The ticket's verification command.
 ---
 
 ## 8. Cross-track requests
+
+**Docs split for `C-04`–`C-08`:** `C-06` (class diagram) and `C-07` (complexity table) are
+Track A's — they document Track A's structures and are its oral-defense script. `C-05` (README)
+and `C-08` (rubric audit) are Track B's. No shared files.
 
 Append here when you need something from a file the other track owns. Format:
 `- [ ] (from Track X to Track Y) <what and why>`.
