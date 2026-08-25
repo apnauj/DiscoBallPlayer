@@ -46,9 +46,11 @@
         <TextField fx:id="albumField" promptText="Optional"
                    GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="2"/>
 
+        <!-- Read from the audio file, never typed. The file already knows its own length,
+             and asking for it again is asking for it to be wrong. -->
         <Label text="Duration" styleClass="field-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-        <TextField fx:id="durationField" promptText="m:ss, or a number of seconds"
-                   GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="2"/>
+        <Label fx:id="durationLabel" styleClass="derived-value"
+               GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="2"/>
 
         <Label text="Genre" styleClass="field-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
         <ComboBox fx:id="genreCombo" maxWidth="Infinity"

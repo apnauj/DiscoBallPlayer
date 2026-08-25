@@ -540,7 +540,7 @@ public class MainController implements PlaybackListener {
             stage.initOwner(libraryTable.getScene().getWindow());
             stage.setTitle(song == null ? "Add song" : "Edit song");
             Scene scene = new Scene(form);
-            stylesheetOf(libraryTable).ifPresent(scene.getStylesheets()::add);
+            scene.getStylesheets().addAll(stylesheetsOf(libraryTable));
             stage.setScene(scene);
             stage.showAndWait();
 
@@ -551,12 +551,16 @@ public class MainController implements PlaybackListener {
         }
     }
 
-    private static java.util.Optional<String> stylesheetOf(javafx.scene.Node node) {
+    /**
+     * Every stylesheet the main window is wearing, in order.
+     *
+     * <p>All of them, not just the first: the theme override is a second sheet, and copying
+     * only the base one opened the dialog in the light theme while the window behind it stayed
+     * dark.</p>
+     */
+    private static List<String> stylesheetsOf(javafx.scene.Node node) {
         Scene scene = node.getScene();
-        if (scene == null || scene.getStylesheets().isEmpty()) {
-            return java.util.Optional.empty();
-        }
-        return java.util.Optional.of(scene.getStylesheets().get(0));
+        return (scene == null) ? List.of() : List.copyOf(scene.getStylesheets());
     }
 
     // ---- rating ----------------------------------------------------------

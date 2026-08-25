@@ -117,6 +117,19 @@
     -fx-text-fill: -db-text-secondary;
 }
 
+/* A value the form derived rather than collected: reads as content, not as an empty input. */
+.derived-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: -db-text;
+    -fx-padding: 7 0 7 2;
+}
+
+.derived-value-absent {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-muted;
+    -fx-font-style: italic;
+}
+
 /* ======================================================================
    Library table
    ====================================================================== */

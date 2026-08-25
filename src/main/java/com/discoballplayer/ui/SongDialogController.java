@@ -40,6 +40,8 @@ import javafx.stage.Window;
 public class SongDialogController {
 
     private static final String ERROR_CLASS = "field-error";
+    private static final String DERIVED_ABSENT = "derived-value-absent";
+    private static final String UNKNOWN_DURATION = "Read from the audio file";
     private static final int MIN_YEAR = 1900;
     private static final int MAX_YEAR = 2100;
 
@@ -48,6 +50,13 @@ public class SongDialogController {
 
     /** The song being edited, or {@code null} when the dialog is creating one. */
     private Song editing;
+
+    /**
+     * The duration in seconds, read from the audio file rather than typed.
+     *
+     * <p>Zero means unknown, which is only possible before an audio file has been chosen.</p>
+     */
+    private int durationSeconds;
 
     @FXML
     private VBox dialogRoot;
@@ -65,7 +74,7 @@ public class SongDialogController {
     private TextField albumField;
 
     @FXML
-    private TextField durationField;
+    private Label durationLabel;
 
     @FXML
     private ComboBox<Genre> genreCombo;
@@ -92,6 +101,8 @@ public class SongDialogController {
     private void initialize() {
         genreCombo.setItems(FXCollections.observableArrayList(Genre.values()));
         genreCombo.setValue(Genre.OTHER);
+        // So the row reads as "waiting for a file" rather than blank, even before setSong.
+        showDuration(0);
     }
 
     // ---- the form's two doors --------------------------------------------
@@ -109,7 +120,7 @@ public class SongDialogController {
             titleField.clear();
             artistField.clear();
             albumField.clear();
-            durationField.clear();
+            showDuration(0);
             genreCombo.setValue(Genre.OTHER);
             yearField.clear();
             ratingField.setText("0");
@@ -122,7 +133,7 @@ public class SongDialogController {
         titleField.setText(song.getTitle());
         artistField.setText(song.getArtists().isEmpty() ? "" : song.getArtistsNames());
         albumField.setText(song.getAlbum() == null ? "" : song.getAlbum().getTitle());
-        durationField.setText(TimeFormatter.mmss(song.getDurationSeconds()));
+        showDuration(song.getDurationSeconds());
         genreCombo.setValue(song.getGenre());
         yearField.setText(String.valueOf(song.getYear()));
         ratingField.setText(String.valueOf(song.getRating()));
@@ -150,10 +161,9 @@ public class SongDialogController {
             markInvalid(titleField);
         }
 
-        int duration = parseDuration(durationField.getText());
-        if (duration <= 0) {
-            problems.add("Duration must be a positive m:ss value or a number of seconds.");
-            markInvalid(durationField);
+        if (durationSeconds <= 0) {
+            problems.add("Choose an audio file — the duration is read from it.");
+            markInvalid(audioField);
         }
 
         int year = parseInt(yearField.getText(), -1);
@@ -173,7 +183,7 @@ public class SongDialogController {
             return;
         }
 
-        result = apply(title, duration, year, rating);
+        result = apply(title, durationSeconds, year, rating);
         close();
     }
 
@@ -297,11 +307,31 @@ public class SongDialogController {
         return worker;
     }
 
-    /** Writes a read duration into the field, leaving it untouched when there is none. */
+    /**
+     * Records a duration read from a file, leaving the previous one alone when there is none.
+     *
+     * <p>Keeping the old value matters when editing: a song already has a duration, and
+     * replacing its audio file with one that cannot be measured must not erase it.</p>
+     */
     void applyDuration(OptionalInt seconds) {
         if (seconds.isPresent()) {
-            durationField.setText(TimeFormatter.mmss(seconds.getAsInt()));
+            showDuration(seconds.getAsInt());
         }
+    }
+
+    private void showDuration(int seconds) {
+        durationSeconds = Math.max(seconds, 0);
+        boolean known = durationSeconds > 0;
+        durationLabel.setText(known ? TimeFormatter.mmss(durationSeconds) : UNKNOWN_DURATION);
+        durationLabel.getStyleClass().removeAll(DERIVED_ABSENT);
+        if (!known) {
+            durationLabel.getStyleClass().add(DERIVED_ABSENT);
+        }
+    }
+
+    /** Visible for tests: the duration the form will save. */
+    int durationSeconds() {
+        return durationSeconds;
     }
 
     /**
@@ -332,7 +362,7 @@ public class SongDialogController {
         errorLabel.setText("");
         errorLabel.setVisible(false);
         errorLabel.setManaged(false);
-        List.of(titleField, durationField, yearField, ratingField).forEach(
+        List.of(titleField, audioField, yearField, ratingField).forEach(
                 field -> field.getStyleClass().remove(ERROR_CLASS));
     }
 
@@ -340,28 +370,6 @@ public class SongDialogController {
         if (!field.getStyleClass().contains(ERROR_CLASS)) {
             field.getStyleClass().add(ERROR_CLASS);
         }
-    }
-
-    /**
-     * Reads {@code m:ss} or a plain number of seconds.
-     *
-     * @return the duration in seconds, or {@code -1} when the text is neither
-     */
-    static int parseDuration(String text) {
-        if (text == null || text.isBlank()) {
-            return -1;
-        }
-        String value = text.trim();
-        int colon = value.indexOf(':');
-        if (colon < 0) {
-            return parseInt(value, -1);
-        }
-        int minutes = parseInt(value.substring(0, colon), -1);
-        int seconds = parseInt(value.substring(colon + 1), -1);
-        if (minutes < 0 || seconds < 0 || seconds > 59) {
-            return -1;
-        }
-        return minutes * 60 + seconds;
     }
 
     private static int parseInt(String text, int fallback) {
