@@ -757,7 +757,21 @@ or `fx:id` is renamed.
     exposed the shell's own minimum, which as scene root had always been ignored -- pinned to
     zero, which is what the Scene did for it before.
   - **Verification:** `mvn test -Dtest=AnimationsTest`
-- [ ] **[B11-04] Logo integration**
+- [x] **[B11-04] Logo integration**
+  - **Files:** `ui/Logo.java`, `ui/MainController.java`, `Main.java`, `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/images/logo.jpeg`
+  - **Objective:** The logo in the sidebar header and on the window and dock icon, with a
+    fallback that leaves the window working when the file is missing or unreadable.
+  - **Note:** the artwork ships as a JPEG, which has no alpha, so on the dance floor it would be
+    a white square with a logo inside it. The background is removed at load by a flood fill
+    inward from the border. Not a colour key: the artwork has white in it -- a lit mirror tile,
+    the highlight on the note head -- and keying on colour alone punches holes through both.
+    Only background connected to an edge is background.
+  - **Ownership crossing:** `Main.java` gains one method, `wearTheLogo`, for the window icon.
+  - **Also:** the drawn mirror ball moved from the sidebar to the now-playing bar. The logo is a
+    mirror ball too, so the two do not belong side by side, and the sidebar has no height to
+    spare at the window's minimum size. It sits last in the bar on purpose: when the bar runs
+    out of room the thing that gets clipped should be decoration, never a control.
+  - **Verification:** `mvn test -Dtest=LogoTest`
 
 ---
 

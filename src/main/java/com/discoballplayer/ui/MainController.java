@@ -148,8 +148,8 @@ public class MainController implements PlaybackListener {
     private static final double COVER_CORNER = 14;
 
     /** The ball and the box it hangs in. Fixed, so the mount rod and the glow cost no layout. */
-    private static final double BALL_RADIUS = 20;
-    private static final double BALL_SLOT = 64;
+    private static final double BALL_RADIUS = 16;
+    private static final double BALL_SLOT = 52;
 
     private Song displayedSong;
 
@@ -268,6 +268,9 @@ public class MainController implements PlaybackListener {
     private StackPane discoBallSlot;
 
     @FXML
+    private ImageView brandLogo;
+
+    @FXML
     private Pane floorLights;
 
     @FXML
@@ -304,6 +307,7 @@ public class MainController implements PlaybackListener {
      * and a view is built in tests far more often than it is displayed.</p>
      */
     private void buildTheFloor() {
+        showTheLogo();
         DiscoBall ball = new DiscoBall(BALL_RADIUS);
         // Unmanaged, and the slot has a fixed size. A Group is sized by its contents, and this
         // one's contents include a glow and a mount rod that sticks out above it -- so with the
@@ -336,6 +340,19 @@ public class MainController implements PlaybackListener {
                 startTheFloor(ball);
             }
         });
+    }
+
+    /**
+     * Puts the logo in the header, if there is one.
+     *
+     * <p>No exception and no placeholder when there is not: the view simply has an empty box
+     * where the mark would go, and every other thing in the window still works.</p>
+     */
+    private void showTheLogo() {
+        Image logo = Logo.image();
+        if (logo != null) {
+            brandLogo.setImage(logo);
+        }
     }
 
     private void startTheFloor(DiscoBall ball) {

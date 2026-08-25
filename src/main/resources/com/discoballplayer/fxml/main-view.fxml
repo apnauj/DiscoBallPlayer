@@ -57,11 +57,10 @@
                  title needs the sidebar's full width, and a ball on the same row truncated it
                  to "DiscoBall...". -->
             <VBox fx:id="brandBox" styleClass="brand-box" spacing="6" alignment="CENTER">
-                <!-- Filled by the controller: the ball is drawn, so FXML has nothing to say
-                     about it beyond where it hangs. -->
-                <StackPane fx:id="discoBallSlot"
-                           minWidth="64" prefWidth="64" maxWidth="64"
-                           minHeight="64" prefHeight="64" maxHeight="64"/>
+                <!-- The image is set by the controller, which lifts it off its background
+                     first. An absent or unreadable file leaves this empty and nothing else
+                     changes: a logo is decoration, and decoration does not stop a window. -->
+                <ImageView fx:id="brandLogo" fitWidth="72" fitHeight="72" preserveRatio="true"/>
                 <Label text="DiscoBallPlayer" styleClass="brand-title"/>
                 <Label text="DANCE ALL NIGHT" styleClass="brand-subtitle"/>
             </VBox>
@@ -215,6 +214,15 @@
             <Label fx:id="statusLabel" styleClass="status-label" wrapText="true"
                    minWidth="140" maxWidth="180" alignment="CENTER_RIGHT"
                    textAlignment="RIGHT"/>
+
+            <!-- The ball hangs here rather than in the sidebar. The logo is a mirror ball too,
+                 so the drawn one belongs well away from it, and the sidebar has no height to
+                 spare once the filters are in, least of all at the window's minimum size. This
+                 bar is a fixed height that always exists. Filled by the controller: the ball is
+                 drawn, so FXML has nothing to say about it beyond where it hangs. -->
+            <StackPane fx:id="discoBallSlot"
+                       minWidth="52" prefWidth="52" maxWidth="52"
+                       minHeight="52" prefHeight="52" maxHeight="52"/>
         </HBox>
     </bottom>
 
