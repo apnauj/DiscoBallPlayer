@@ -640,6 +640,35 @@ three in `#35`; these are the two that stayed invisible until the UI caught up.
 
 ---
 
+### B8 — Duration comes from the file, not from the user
+
+- [x] **[B8-01] Fix `AudioMetadata` so it can actually measure a file**
+  - **Files:** `playback/audio/AudioMetadata.java`
+  - **Objective:** The reader waited on the `Media` metadata map, but that map holds tags —
+    artist, title, album art — while `getDuration()` stays `UNKNOWN` until a `MediaPlayer`
+    prepares the stream. Any untagged file, which is most of them, timed out and answered
+    empty. It now reads from a `MediaPlayer` reaching `READY`, releases the latch on both
+    error paths, and always disposes the player.
+  - **Ownership crossing:** this file is Track A's. Recorded below and in Cross-track requests.
+  - **Verification:** `mvn test -Dtest=SongDialogControllerTest#aRealAudioFileIsMeasuredByTheRealReader`
+
+- [x] **[B8-02] Duration stops being an input**
+  - **Files:** `resources/com/discoballplayer/fxml/song-dialog.fxml`, `ui/SongDialogController.java`, `src/test/java/com/discoballplayer/ui/SongDialogControllerTest.java`
+  - **Objective:** The duration row is a derived display, not a text field. It shows what the
+    chosen audio file reports, or "Read from the audio file" before there is one. Creating a
+    song with no measurable duration is refused and the message points at the audio field.
+    Editing keeps a stored duration, so a catalogue entry with no audio file still saves.
+  - **Consequence:** `parseDuration` is gone with the field that fed it.
+  - **Verification:** `mvn test -Dtest=SongDialogControllerTest#theDurationIsNotSomethingTheUserCanType`
+
+- [x] **[B8-03] The dialog inherits the whole theme**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** The dialog copied only the first stylesheet from the main scene, so it opened
+    in the light theme while the window behind it stayed dark. It copies all of them now.
+  - **Verification:** `mvn javafx:run`, dark theme, open Add — the form is dark too.
+
+---
+
 ## 6. Phase C — Integration and defense material (both tracks, sequential)
 
 Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
@@ -913,27 +942,28 @@ Append here when you need something from a file the other track owns. Format:
   `grep -c "Time complexity" src/main/java/com/discoballplayer/structures/DoublyCircularLinkedList.java`
   — currently `4`.
 
-- [ ] (from Track B to Track A) `AudioMetadata.durationSeconds` returns empty for any file
-  without metadata tags, after burning the full three-second timeout. It waits on the
-  `Media` metadata map, but that map carries tags — artist, title, album art — while the
-  duration only becomes known once a `MediaPlayer` reaches `READY`. A tagless file never fires
-  the listener.
+- [x] (from Track B to Track A) `AudioMetadata.durationSeconds` returned empty for any file
+  without metadata tags, after burning the full timeout. It waited on the `Media` metadata
+  map, but that map carries tags — artist, title, album art — while the duration only becomes
+  known once a `MediaPlayer` reaches `READY`. A tagless file never fired the listener.
 
-  Measured on a generated three-second WAV:
+  Measured on a generated three-second WAV, before and after:
 
   ```
-  AUDIOMETADATA=OptionalInt.empty  tookMs=3056
-  VIA_MEDIAPLAYER_READY=true  duration=3000.0 ms  seconds=3.0
+  before:  AUDIOMETADATA=OptionalInt.empty  tookMs=3056
+  after:   AUDIOMETADATA=OptionalInt[3]     tookMs=111
   ```
 
-  The same file, read through `new MediaPlayer(media)` with `setOnReady`, gives the exact
-  duration. Suggested fix: create a `MediaPlayer`, await `READY`, read `media.getDuration()`,
-  then `dispose()`.
+  **Fixed by Track B in `B8-01`, crossing into Track A's file.** The user hit this by hand and
+  asked for it directly, and the ticket that depends on it could not work without it. Same
+  reasoning Track A used when it added `playSong` to `DemoPlayerService`: leaving the feature
+  broken was worse than crossing. Please review — it is a small change, and
+  `SongDialogControllerTest#aRealAudioFileIsMeasuredByTheRealReader` covers it with a real,
+  untagged WAV. Reverting to the metadata-map wait fails that test with `expected: <3> but
+  was: <0>`.
 
-  Track B mitigated the symptom on its side — `SongDialogController` now reads off the FX
-  thread, because a three-second block from a file-chooser handler freezes the window — but
-  the reader itself is Track A's and still answers empty for most files. `B7-02` works
-  correctly against whatever the reader returns; it just rarely returns anything today.
+  The reader still blocks until the decoder is ready, so it must not be called on the FX
+  thread; `SongDialogController` reads it on a worker.
 
 - [x] (from Track B to Track A) Open `src/test/java/com/discoballplayer/ui/` to Track B.
   The coherent-unit rule asks every PR to carry the tests that verify it, but the ownership

@@ -8,21 +8,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
 /**
  * Reads what an audio file can tell us about itself.
  *
  * <p>Asking a user to type a song's duration is asking them to copy a number the file already
- * knows, and to get it wrong. The dialog should fill the field from the file and let the user
- * override it only when there is no file.</p>
+ * knows, and to get it wrong.</p>
  */
 public final class AudioMetadata {
 
     private static final Logger LOG = Logger.getLogger(AudioMetadata.class.getName());
 
-    /** Metadata is read asynchronously; beyond this the file is treated as unreadable. */
-    private static final long TIMEOUT_MILLIS = 3000;
+    /** Headers are parsed asynchronously; beyond this the file is treated as unreadable. */
+    private static final long TIMEOUT_MILLIS = 5000;
 
     private AudioMetadata() {
     }
@@ -30,9 +30,16 @@ public final class AudioMetadata {
     /**
      * Reads a file's duration in seconds.
      *
-     * <p>{@link Media} parses its headers on a background thread, so this blocks briefly and
-     * then gives up. A file picker that hangs on a malformed file is worse than one that
-     * leaves the field for the user to fill.</p>
+     * <p>The duration is taken from a {@link MediaPlayer} reaching {@code READY}, not from the
+     * {@code Media} metadata map. That map holds tags — artist, title, album art — and a file
+     * without tags never populates it, while {@link Media#getDuration()} stays
+     * {@code UNKNOWN} until a player has prepared the stream. Waiting on the map therefore
+     * timed out on every untagged file, which is most of them, and answered empty for a file
+     * whose length was sitting right there.</p>
+     *
+     * <p>Blocks until the player is ready, fails, or the timeout elapses, so callers on the FX
+     * thread must move it off. The player is always disposed: each one holds a native decoder,
+     * and leaking one per file picked would be a slow leak in a long session.</p>
      *
      * @return the duration, or empty when the path is blank, unreadable, unparseable, or slow
      */
@@ -45,35 +52,49 @@ public final class AudioMetadata {
             return OptionalInt.empty();
         }
 
+        MediaPlayer player = null;
         try {
             Media media = new Media(file.toURI().toString());
-            CountDownLatch ready = new CountDownLatch(1);
-            media.getMetadata().addListener(
-                    (javafx.collections.MapChangeListener<String, Object>) change -> ready.countDown());
 
             Duration immediate = media.getDuration();
             if (isUsable(immediate)) {
-                return OptionalInt.of((int) Math.round(immediate.toSeconds()));
+                return OptionalInt.of(seconds(immediate));
             }
 
-            if (!ready.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            player = new MediaPlayer(media);
+            CountDownLatch settled = new CountDownLatch(1);
+            player.setOnReady(settled::countDown);
+            // Both failure paths must release the latch, or an undecodable file costs the
+            // caller the whole timeout instead of failing as soon as the decoder gives up.
+            player.setOnError(settled::countDown);
+            media.setOnError(settled::countDown);
+
+            if (!settled.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 LOG.log(Level.INFO, "Timed out reading the duration of {0}.", path);
                 return OptionalInt.empty();
             }
-            Duration parsed = media.getDuration();
-            return isUsable(parsed)
-                    ? OptionalInt.of((int) Math.round(parsed.toSeconds()))
-                    : OptionalInt.empty();
+
+            Duration ready = media.getDuration();
+            return isUsable(ready) ? OptionalInt.of(seconds(ready)) : OptionalInt.empty();
+
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             return OptionalInt.empty();
         } catch (RuntimeException unreadable) {
             LOG.log(Level.INFO, "Could not read the duration of " + path, unreadable);
             return OptionalInt.empty();
+        } finally {
+            if (player != null) {
+                player.dispose();
+            }
         }
     }
 
+    private static int seconds(Duration duration) {
+        return Math.max(1, (int) Math.round(duration.toSeconds()));
+    }
+
     private static boolean isUsable(Duration duration) {
-        return duration != null && !duration.isUnknown() && duration.toSeconds() >= 1;
+        return duration != null && !duration.isUnknown() && duration.toSeconds() >= 0.5;
     }
 }

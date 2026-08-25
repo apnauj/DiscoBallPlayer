@@ -1,5 +1,6 @@
 package com.discoballplayer.ui;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -9,6 +10,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 
 import com.discoballplayer.model.Album;
 import com.discoballplayer.model.Artist;
@@ -28,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -163,16 +170,6 @@ class SongDialogControllerTest extends JavaFxTestBase {
     }
 
     @Test
-    void aDurationThatIsNotANumberIsRejected() {
-        fillValidForm();
-        set("durationField", "three minutes");
-        save();
-
-        assertNull(dialog.getResult());
-        assertTrue(field("durationField").getStyleClass().contains("field-error"));
-    }
-
-    @Test
     void everyProblemIsReportedAtOnceNotOneAtATime() {
         fillValidForm();
         set("titleField", "");
@@ -199,31 +196,6 @@ class SongDialogControllerTest extends JavaFxTestBase {
         assertFalse(label("errorLabel").isVisible());
     }
 
-    // ---- duration parsing ------------------------------------------------
-
-    @Test
-    void readsDurationAsMinutesAndSeconds() {
-        assertEquals(320, SongDialogController.parseDuration("5:20"));
-        assertEquals(9, SongDialogController.parseDuration("0:09"));
-    }
-
-    @Test
-    void readsDurationAsAPlainNumberOfSeconds() {
-        assertEquals(212, SongDialogController.parseDuration("212"));
-    }
-
-    @Test
-    void refusesADurationWithMoreThanFiftyNineSeconds() {
-        assertEquals(-1, SongDialogController.parseDuration("3:75"));
-    }
-
-    @Test
-    void refusesABlankOrNonNumericDuration() {
-        assertEquals(-1, SongDialogController.parseDuration(""));
-        assertEquals(-1, SongDialogController.parseDuration(null));
-        assertEquals(-1, SongDialogController.parseDuration("abc"));
-    }
-
     // ---- editing ---------------------------------------------------------
 
     @Test
@@ -233,7 +205,7 @@ class SongDialogControllerTest extends JavaFxTestBase {
         assertEquals("Edit song", label("dialogTitle").getText());
         assertEquals("Tania", field("titleField").getText());
         assertEquals("Joe Arroyo", field("artistField").getText());
-        assertEquals("4:48", field("durationField").getText());
+        assertEquals("4:48", label("durationLabel").getText());
         assertEquals("87", field("ratingField").getText());
     }
 
@@ -313,6 +285,20 @@ class SongDialogControllerTest extends JavaFxTestBase {
     // ---- duration read from the audio file -------------------------------
 
     @Test
+    void theDurationIsNotSomethingTheUserCanType() {
+        assertNull(root.lookup("#durationField"),
+                "the file already knows its length; asking again only invites a wrong answer");
+        assertNotNull(root.lookup("#durationLabel"));
+        assertInstanceOf(Label.class, root.lookup("#durationLabel"));
+    }
+
+    @Test
+    void anEmptyFormSaysWhereTheDurationWillComeFrom() {
+        assertEquals("Read from the audio file", label("durationLabel").getText());
+        assertEquals(0, dialog.durationSeconds());
+    }
+
+    @Test
     void choosingAnAudioFileFillsTheDurationFromWhatTheFileReports(@TempDir Path folder)
             throws Exception {
         File audio = existingFile(folder, "track.mp3");
@@ -320,60 +306,103 @@ class SongDialogControllerTest extends JavaFxTestBase {
 
         readDuration(audio);
 
-        assertEquals("3:32", field("durationField").getText(),
-                "the file knows its own length better than the person typing");
+        assertEquals("3:32", label("durationLabel").getText());
+        assertEquals(212, dialog.durationSeconds());
     }
 
     @Test
-    void aFilledDurationSurvivesARoundTripThroughTheForm(@TempDir Path folder) throws Exception {
+    void aFileSuppliedDurationIsWhatGetsSaved(@TempDir Path folder) throws Exception {
+        fillFormExceptDuration();
         File audio = existingFile(folder, "track.mp3");
         onFxThread(() -> dialog.durationSource(path -> OptionalInt.of(212)));
         readDuration(audio);
 
-        fillValidForm();
-        set("durationField", "3:32");
         save();
 
-        assertEquals(212, dialog.getResult().getDurationSeconds(),
-                "what the picker writes has to be readable by parseDuration");
+        assertEquals(212, dialog.getResult().getDurationSeconds());
     }
 
     @Test
-    void aFileWithNoReadableDurationLeavesTheFieldAlone(@TempDir Path folder) throws Exception {
-        File audio = existingFile(folder, "track.mp3");
-        set("durationField", "4:20");
-        onFxThread(() -> dialog.durationSource(path -> OptionalInt.empty()));
+    void savingWithoutAReadableDurationIsRefusedAndPointsAtTheAudioField() {
+        fillFormExceptDuration();
 
+        save();
+
+        assertNull(dialog.getResult());
+        assertTrue(label("errorLabel").getText().contains("audio file"),
+                label("errorLabel").getText());
+        assertTrue(field("audioField").getStyleClass().contains("field-error"),
+                "the message has to point at the field that fixes it");
+    }
+
+    @Test
+    void aFileWithNoReadableDurationLeavesTheKnownOneAlone(@TempDir Path folder) throws Exception {
+        onFxThread(() -> dialog.setSong(existingSong()));
+        assertEquals(288, dialog.durationSeconds());
+
+        File audio = existingFile(folder, "replacement.mp3");
+        onFxThread(() -> dialog.durationSource(path -> OptionalInt.empty()));
         readDuration(audio);
 
-        assertEquals("4:20", field("durationField").getText(),
-                "an unreadable file must not wipe what the user already typed");
+        assertEquals(288, dialog.durationSeconds(),
+                "replacing the audio with an unmeasurable file must not erase a known duration");
     }
 
     @Test
-    void aRealFileThatIsNotAudioLeavesTheFieldAlone(@TempDir Path folder) throws Exception {
+    void aRealFileThatIsNotAudioLeavesTheDurationUnknown(@TempDir Path folder) throws Exception {
         // Against the real reader, not a stub: this is the path a user hits by mis-picking.
         Path text = folder.resolve("not-audio.mp3");
         Files.writeString(text, "this is text, not audio");
-        set("durationField", "4:20");
 
         readDuration(text.toFile());
 
-        assertEquals("4:20", field("durationField").getText());
+        assertEquals(0, dialog.durationSeconds());
+        assertEquals("Read from the audio file", label("durationLabel").getText());
+    }
+
+    @Test
+    void aRealAudioFileIsMeasuredByTheRealReader(@TempDir Path folder) throws Exception {
+        // No stub. This is the bug the user reported: the field stayed empty for every file
+        // without metadata tags, because the reader waited on the tag map instead of on a
+        // MediaPlayer becoming ready. A generated WAV has no tags at all.
+        File wav = threeSecondWav(folder);
+
+        readDuration(wav);
+
+        assertEquals(3, dialog.durationSeconds(),
+                "a file with no tags still knows how long it is");
+        assertEquals("0:03", label("durationLabel").getText());
+    }
+
+    /** A real, decodable, completely untagged three-second WAV. */
+    private static File threeSecondWav(Path folder) throws Exception {
+        int rate = 8000;
+        int seconds = 3;
+        byte[] samples = new byte[rate * seconds * 2];
+        for (int i = 0; i < rate * seconds; i++) {
+            short value = (short) (Math.sin(i * 2 * Math.PI * 440 / rate) * 8000);
+            samples[i * 2] = (byte) (value & 0xff);
+            samples[i * 2 + 1] = (byte) ((value >> 8) & 0xff);
+        }
+        AudioFormat format = new AudioFormat(rate, 16, 1, true, false);
+        File file = folder.resolve("untagged.wav").toFile();
+        try (AudioInputStream stream = new AudioInputStream(
+                new ByteArrayInputStream(samples), format, samples.length / format.getFrameSize())) {
+            AudioSystem.write(stream, AudioFileFormat.Type.WAVE, file);
+        }
+        return file;
     }
 
     @Test
     void aCancelledAudioChooserReadsNothingAtAll() {
-        set("durationField", "4:20");
-
         assertNull(dialog.readDurationInBackground(null));
-        assertEquals("4:20", field("durationField").getText());
+        assertEquals(0, dialog.durationSeconds());
     }
 
     @Test
     void theDurationIsNeverReadOnTheFxThread(@TempDir Path folder) throws Exception {
-        // The reader blocks for up to three seconds on a file it cannot measure. Inline, that
-        // is a three-second freeze of the whole window from a file-chooser handler.
+        // The reader blocks until the decoder is ready. Inline, that is a frozen window from a
+        // file-chooser handler, on exactly the files where waiting gains nothing.
         File audio = existingFile(folder, "track.mp3");
         AtomicReference<String> readerThread = new AtomicReference<>();
         onFxThread(() -> dialog.durationSource(path -> {
@@ -389,37 +418,27 @@ class SongDialogControllerTest extends JavaFxTestBase {
     }
 
     @Test
-    void theDurationFieldStaysTypeableAfterBeingFilled(@TempDir Path folder) throws Exception {
-        File audio = existingFile(folder, "track.mp3");
-        onFxThread(() -> dialog.durationSource(path -> OptionalInt.of(60)));
-        readDuration(audio);
-        assertEquals("1:00", field("durationField").getText());
+    void editingShowsTheStoredDurationWithoutAnAudioFile() {
+        onFxThread(() -> dialog.setSong(existingSong()));
 
-        assertTrue(field("durationField").isEditable(),
-                "a song with no audio file can only get its duration by being typed");
-        assertFalse(field("durationField").isDisabled());
-
-        set("durationField", "2:30");
-        assertEquals("2:30", field("durationField").getText());
+        assertEquals("4:48", label("durationLabel").getText());
+        assertEquals(288, dialog.durationSeconds());
     }
 
     @Test
-    void applyingAnAbsentDurationWritesNothing() {
-        set("durationField", "4:20");
+    void editingASongWithNoAudioFileStillSaves() {
+        Song stored = existingSong();
+        onFxThread(() -> dialog.setSong(stored));
 
-        onFxThread(() -> dialog.applyDuration(OptionalInt.empty()));
+        set("titleField", "Tania (remaster)");
+        save();
 
-        assertEquals("4:20", field("durationField").getText());
+        assertSame(stored, dialog.getResult());
+        assertEquals(288, dialog.getResult().getDurationSeconds(),
+                "a catalogue entry that already has a duration keeps it");
     }
 
-    /**
-     * Starts the read the way production does — from the FX thread, as a file-chooser handler
-     * would — then waits for both it and the FX update to finish.
-     *
-     * <p>Starting it from the test thread instead would let an inline, blocking implementation
-     * pass {@code theDurationIsNeverReadOnTheFxThread}. A deliberate mutation proved exactly
-     * that before this helper was corrected.</p>
-     */
+    /** Starts the background read from the FX thread, as a file-chooser handler would. */
     private void readDuration(File file) throws InterruptedException {
         AtomicReference<Thread> worker = new AtomicReference<>();
         onFxThread(() -> worker.set(dialog.readDurationInBackground(file)));
@@ -437,14 +456,19 @@ class SongDialogControllerTest extends JavaFxTestBase {
 
     // ---- helpers ---------------------------------------------------------
 
-    private void fillValidForm() {
+    /** Everything a save needs except the duration, which only an audio file can supply. */
+    private void fillFormExceptDuration() {
         set("titleField", "Blue Monday");
         set("artistField", "New Order");
         set("albumField", "Power, Corruption & Lies");
-        set("durationField", "7:28");
         set("yearField", "1983");
         set("ratingField", "75");
         onFxThread(() -> genreCombo().setValue(Genre.ELECTRONIC));
+    }
+
+    private void fillValidForm() {
+        fillFormExceptDuration();
+        onFxThread(() -> dialog.applyDuration(OptionalInt.of(448)));
     }
 
     private static Song existingSong() {
