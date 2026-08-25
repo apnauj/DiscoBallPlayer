@@ -167,6 +167,11 @@ class MainLibraryLoadingTest {
     private static final class RecordingEngine
             implements com.discoballplayer.playback.audio.AudioEngine {
         boolean disposed;
+        double volume = 1;
+
+        /** Added by Track B when AudioEngine gained volume; records rather than plays. */
+        @Override public void setVolume(double level) { volume = Math.min(1, Math.max(0, level)); }
+        @Override public double getVolume() { return volume; }
 
         @Override public void load(Song song) { }
         @Override public void play() { }

@@ -669,6 +669,47 @@ three in `#35`; these are the two that stayed invisible until the UI caught up.
 
 ---
 
+### B9 — Playback experience, from using the app
+
+- [x] **[B9-01] A newly added song joins the mode already playing**
+  - **Files:** `playback/PlaybackMode.java`, `playback/AbstractPlaybackMode.java`, the three modes, `service/Player.java`, `service/DemoPlayerService.java`
+  - **Objective:** `PlaybackMode.add(Song)`. Each mode inserts where its own structure says the
+    song belongs — the back of the queue in arrival order, the sorted position in the tree, the
+    ring in shuffle — instead of rebuilding, which would re-randomize shuffle and refill a
+    drained queue. The two cursor-driven modes re-seat afterwards, because insertion
+    invalidates a live cursor by design.
+  - **Ownership crossing:** `playback/` and two Track A test doubles.
+  - **Verification:** `mvn test -Dtest=ControllerInjectionTest#aSongAddedThroughTheRealPlayerJoinsTheModeItIsPlaying`
+
+- [x] **[B9-02] Choosing a mode starts it playing**
+  - **Files:** `ui/MainController.java`
+  - **Objective:** Choosing a mode is a request to hear it, not to arm it.
+  - **Verification:** `mvn test -Dtest=TransportControlsTest#choosingAModeStartsItPlaying`
+
+- [x] **[B9-03] Volume control**
+  - **Files:** `playback/audio/AudioEngine.java` and both engines, `service/PlayerService.java`, `service/Player.java`, `service/DemoPlayerService.java`, `ui/`, `fxml`
+  - **Objective:** `setVolume`/`getVolume` from 0.0 to 1.0, clamped rather than rejected. The
+    simulated engine has no output to attenuate but still holds the level, so a song with no
+    audio file does not reset what the user chose.
+  - **Ownership crossing:** `playback/audio/`, `service/`, and two Track A test doubles.
+  - **Verification:** `mvn test -Dtest=FiltersAndVolumeTest#movingTheVolumeSliderReachesTheService`
+
+- [x] **[B9-04] Sidebar filters**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `ui/MainController.java`
+  - **Objective:** Genre, artist and minimum rating, combining with each other and with the
+    search box through one predicate. The artist list is derived from the library, so an artist
+    is an option exactly as long as a song credits them. A filter hides rows; it never deletes.
+  - **Verification:** `mvn test -Dtest=FiltersAndVolumeTest#filtersCombineRatherThanReplaceEachOther`
+
+- [x] **[B9-05] Icon transport controls**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/css/app.css`, `ui/MainController.java`
+  - **Objective:** Inline `SVGPath` glyphs — no image assets, and they take their colour from
+    the stylesheet. The play glyph becomes a pause glyph from `onPlaybackStateChanged`, not
+    from the click. The text stays as the accessible name and the tooltip.
+  - **Verification:** `mvn test -Dtest=FiltersAndVolumeTest#theIconFollowsTheServiceRatherThanTheClick`
+
+---
+
 ## 6. Phase C — Integration and defense material (both tracks, sequential)
 
 Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
@@ -941,6 +982,21 @@ Append here when you need something from a file the other track owns. Format:
   Re-check with
   `grep -c "Time complexity" src/main/java/com/discoballplayer/structures/DoublyCircularLinkedList.java`
   — currently `4`.
+
+- [ ] (from Track B to Track A) `B9-01` and `B9-03` widen two contracts you own.
+  `PlaybackMode` gains `add(Song)` and `AudioEngine` gains `setVolume`/`getVolume`. Both were
+  user-reported gaps: a song added while a mode was playing was unreachable until the mode was
+  reselected, and there was no way to change the volume at all.
+
+  `AbstractPlaybackMode` owns the add-then-reseat sequence the same way it owns
+  `load`/`loadStructure`, so each mode implements `insertIntoStructure` and nothing else.
+  Rebuilding on add was rejected deliberately: it re-randomizes shuffle, which makes Previous
+  meaningless, and it refills a queue arrival order has already drained.
+
+  Widening a shared interface obliges its implementors, so three of your test doubles gained
+  the new methods — `PlayerTest.StubMode`, `PlayerTest.FakeAudio` and
+  `MainLibraryLoadingTest.RecordingEngine`. Each records rather than acts, and each is marked
+  with a comment saying Track B added it. Please review those alongside the contracts.
 
 - [x] (from Track B to Track A) `AudioMetadata.durationSeconds` returned empty for any file
   without metadata tags, after burning the full timeout. It waited on the `Media` metadata

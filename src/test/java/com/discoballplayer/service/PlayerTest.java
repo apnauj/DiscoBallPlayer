@@ -140,6 +140,19 @@ class PlayerTest {
 
     /** Records engine calls and lets a test fire the engine's callbacks by hand. */
     private static final class FakeAudio implements AudioEngine {
+
+        double volume = 1;
+
+        /** Added by Track B when AudioEngine gained volume; records rather than plays. */
+        @Override
+        public void setVolume(double level) {
+            volume = Math.min(1, Math.max(0, level));
+        }
+
+        @Override
+        public double getVolume() {
+            return volume;
+        }
         final List<String> calls = new ArrayList<>();
         java.util.function.IntConsumer progress = elapsed -> { };
         Runnable completion = () -> { };

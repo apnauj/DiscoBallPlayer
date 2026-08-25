@@ -5,7 +5,10 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.shape.SVGPath?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -53,8 +56,23 @@
                              onAction="#onAlphabeticalMode" styleClass="mode-option"/>
             </VBox>
 
-            <VBox fx:id="filterBox" styleClass="sidebar-section" spacing="8">
+            <VBox fx:id="filterBox" styleClass="sidebar-section" spacing="10">
                 <Label text="FILTERS" styleClass="section-title"/>
+
+                <Label text="Genre" styleClass="filter-label"/>
+                <ComboBox fx:id="genreFilter" maxWidth="Infinity" onAction="#onFilterChanged"/>
+
+                <Label text="Artist" styleClass="filter-label"/>
+                <ComboBox fx:id="artistFilter" maxWidth="Infinity" onAction="#onFilterChanged"/>
+
+                <Label fx:id="ratingFilterLabel" text="Rating 0+" styleClass="filter-label"/>
+                <Slider fx:id="ratingFilter" min="0" max="100" value="0"
+                        majorTickUnit="10" minorTickCount="0" snapToTicks="true"
+                        blockIncrement="10"/>
+
+                <Button fx:id="clearFiltersButton" text="Clear filters" maxWidth="Infinity"
+                        onAction="#onClearFilters"/>
+                <Label fx:id="filterSummary" styleClass="filter-summary" wrapText="true"/>
             </VBox>
         </VBox>
     </left>
@@ -115,12 +133,34 @@
             <!-- Never shrinks: a long status message must not squeeze the transport into
                  "Previ..." and "N...". -->
             <HBox alignment="CENTER" spacing="8" styleClass="transport" minWidth="-Infinity">
+                <!-- Icons are inline SVG paths: no image assets to ship, and they take
+                     their colour from the stylesheet like any other shape. The text is kept
+                     as the accessible name and the tooltip, not as a visible label. -->
                 <Button fx:id="previousButton" text="Previous" onAction="#onPrevious"
-                        styleClass="transport-button"/>
-                <Button fx:id="playPauseButton" text="Play" onAction="#onPlayPause"
-                        styleClass="transport-button, primary-button" minWidth="90"/>
+                        styleClass="transport-button, icon-button">
+                    <graphic>
+                        <SVGPath fx:id="previousIcon" styleClass="transport-icon"
+                                 content="M 16,4 L 16,16 L 6,10 Z M 5,4 L 3,4 L 3,16 L 5,16 Z"/>
+                    </graphic>
+                    <tooltip><Tooltip text="Previous"/></tooltip>
+                </Button>
+
+                <Button fx:id="playPauseButton" onAction="#onPlayPause"
+                        styleClass="transport-button, icon-button, primary-button">
+                    <graphic>
+                        <SVGPath fx:id="playPauseIcon" styleClass="transport-icon"/>
+                    </graphic>
+                    <tooltip><Tooltip text="Play or pause"/></tooltip>
+                </Button>
+
                 <Button fx:id="nextButton" text="Next" onAction="#onNext"
-                        styleClass="transport-button"/>
+                        styleClass="transport-button, icon-button">
+                    <graphic>
+                        <SVGPath fx:id="nextIcon" styleClass="transport-icon"
+                                 content="M 4,4 L 4,16 L 14,10 Z M 15,4 L 17,4 L 17,16 L 15,16 Z"/>
+                    </graphic>
+                    <tooltip><Tooltip text="Next"/></tooltip>
+                </Button>
             </HBox>
 
             <VBox HBox.hgrow="ALWAYS" alignment="CENTER" spacing="6">
@@ -130,6 +170,12 @@
                     <Region HBox.hgrow="ALWAYS"/>
                     <Label fx:id="totalLabel" styleClass="time-label" text="0:00"/>
                 </HBox>
+            </VBox>
+
+            <VBox alignment="CENTER_LEFT" spacing="4" minWidth="120">
+                <Label fx:id="volumeLabel" text="Volume 100%" styleClass="time-label"/>
+                <Slider fx:id="volumeSlider" min="0" max="100" value="100"
+                        blockIncrement="5" prefWidth="120"/>
             </VBox>
 
             <VBox alignment="CENTER_LEFT" spacing="4" minWidth="150">

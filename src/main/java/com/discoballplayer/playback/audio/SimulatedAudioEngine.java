@@ -20,6 +20,9 @@ import com.discoballplayer.model.Song;
  */
 public class SimulatedAudioEngine implements AudioEngine {
 
+    /** 0.0 silent to 1.0 full; full by default so nothing starts inaudible. */
+    private double volume = 1;
+
     /** Schedules the once-a-second tick. Swapped in tests for a manual clock. */
     public interface Ticker {
         /** Starts calling {@code tick} once a second; replaces any previous schedule. */
@@ -85,6 +88,26 @@ public class SimulatedAudioEngine implements AudioEngine {
         this.playing = false;
         ticker.stop();
         progressCallback.accept(0);
+    }
+
+    /**
+     * Remembered, not applied: a clock has no output to attenuate.
+     *
+     * <p>It still has to be held, because the user's chosen level must survive a song with no
+     * audio file and be there again for the next one that has one.</p>
+     */
+    @Override
+    public void setVolume(double volume) {
+        this.volume = clampVolume(volume);
+    }
+
+    @Override
+    public double getVolume() {
+        return volume;
+    }
+
+    static double clampVolume(double volume) {
+        return Math.min(1, Math.max(0, volume));
     }
 
     @Override

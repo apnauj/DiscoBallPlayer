@@ -192,6 +192,16 @@ public class Player implements PlayerService {
     }
 
     @Override
+    public void setVolume(double volume) {
+        audio.setVolume(volume);
+    }
+
+    @Override
+    public double getVolume() {
+        return audio.getVolume();
+    }
+
+    @Override
     public boolean isPlaying() {
         return playing;
     }

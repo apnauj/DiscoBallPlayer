@@ -30,6 +30,7 @@ public class JavaFxAudioEngine implements AudioEngine {
 
     private MediaPlayer mediaPlayer;
     private Song song;
+    private double volume = 1;
     private IntConsumer progressCallback = elapsed -> { };
     private Runnable completionCallback = () -> { };
 
@@ -58,6 +59,8 @@ public class JavaFxAudioEngine implements AudioEngine {
         if (opened == null) {
             return;
         }
+        // A new player starts at full volume; carry the user's setting across the song change.
+        opened.setVolume(volume);
         mediaPlayer = opened;
         mediaPlayer.currentTimeProperty().addListener((observable, before, now) ->
                 progressCallback.accept((int) now.toSeconds()));
@@ -89,6 +92,26 @@ public class JavaFxAudioEngine implements AudioEngine {
                     "Could not open " + path + "; using the simulated clock.", unplayable);
             return null;
         }
+    }
+
+    /**
+     * Applies the level to whichever engine is actually running, and remembers it.
+     *
+     * <p>Both are kept in step: the real player is what the user hears now, and the fallback
+     * holds the level for the next song that turns out to have no readable file.</p>
+     */
+    @Override
+    public void setVolume(double volume) {
+        this.volume = SimulatedAudioEngine.clampVolume(volume);
+        fallback.setVolume(this.volume);
+        if (playingRealAudio()) {
+            mediaPlayer.setVolume(this.volume);
+        }
+    }
+
+    @Override
+    public double getVolume() {
+        return volume;
     }
 
     @Override

@@ -9,6 +9,8 @@ import com.discoballplayer.model.Artist;
 import com.discoballplayer.model.Genre;
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
+import com.discoballplayer.playback.AlphabeticalMode;
+import com.discoballplayer.playback.ShuffleMode;
 import com.discoballplayer.playback.audio.SimulatedAudioEngine;
 import com.discoballplayer.service.DemoPlayerService;
 import com.discoballplayer.service.Player;
@@ -97,6 +99,47 @@ class ControllerInjectionTest extends JavaFxTestBase {
         assertTrue(library.getAllSongs().contains(added),
                 "an edit that does not reach the injected library is an edit that will not be saved");
 
+        player.dispose();
+    }
+
+    @Test
+    void aSongAddedThroughTheRealPlayerJoinsTheModeItIsPlaying() {
+        // The UI suites run on the demo stub, so without this the production path -- Player,
+        // a real mode, a real structure -- had nothing asserting that an added song is
+        // reachable. Removing mode.add from Player.addSong passed every other test.
+        MusicLibrary library = new MusicLibrary();
+        library.addSong(new Song("First", List.of(new Artist("Nobody")), null, 100, Genre.ROCK, 2020));
+        Player player = new Player(library, new SimulatedAudioEngine());
+        player.setMode(new ShuffleMode());
+        player.next();
+
+        Song latecomer = new Song("Added While Playing", List.of(new Artist("Nobody")), null,
+                100, Genre.JAZZ, 2024);
+        player.addSong(latecomer);
+
+        assertSame(latecomer, player.playSong(latecomer),
+                "a song added while a mode is playing has to be reachable in it");
+        player.dispose();
+    }
+
+    @Test
+    void addingASongThroughTheRealPlayerDoesNotRestartTheMode() {
+        MusicLibrary library = new MusicLibrary();
+        for (String title : List.of("Aaa", "Bbb", "Ccc")) {
+            library.addSong(new Song(title, List.of(new Artist("Nobody")), null,
+                    100, Genre.ROCK, 2020));
+        }
+        Player player = new Player(library, new SimulatedAudioEngine());
+        player.setMode(new AlphabeticalMode());
+        player.next();
+        player.next();
+        Song playing = player.current();
+
+        player.addSong(new Song("Aaa0 Sorts First", List.of(new Artist("Nobody")), null,
+                100, Genre.ROCK, 2020));
+
+        assertSame(playing, player.current(),
+                "an insertion must not move the cursor off the song being played");
         player.dispose();
     }
 
