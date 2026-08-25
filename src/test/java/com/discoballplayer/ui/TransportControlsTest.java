@@ -99,9 +99,8 @@ class TransportControlsTest extends JavaFxTestBase {
 
     @Test
     void alphabeticalHasNoPreviousAtTheFirstSongAndOneAfterwards() {
+        // Selecting a mode now starts it, so the first title is already playing.
         press("alphabeticalModeButton");
-
-        press("nextButton");
         assertTrue(button("previousButton").isDisabled(), "nothing precedes the first title");
 
         press("nextButton");
@@ -114,7 +113,8 @@ class TransportControlsTest extends JavaFxTestBase {
     void arrivalOrderReportsAFinishedQueueInsteadOfThrowing() {
         press("arrivalModeButton");
 
-        for (int played = 0; played < DEMO_LIBRARY_SIZE; played++) {
+        // Selecting the mode already dequeued the first song, so one fewer press reaches the end.
+        for (int played = 0; played < DEMO_LIBRARY_SIZE - 1; played++) {
             press("nextButton");
         }
         assertNotEquals("Queue finished", status().getText(), "the last song is still playable");
@@ -139,23 +139,23 @@ class TransportControlsTest extends JavaFxTestBase {
 
     @Test
     void playPauseLabelFollowsTheService() {
+        press("shuffleModeButton");
+        assertEquals("Pause", button("playPauseButton").getText(), "the mode started playing");
+
+        press("playPauseButton");
         assertEquals("Play", button("playPauseButton").getText());
 
         press("playPauseButton");
         assertEquals("Pause", button("playPauseButton").getText());
-
-        press("playPauseButton");
-        assertEquals("Play", button("playPauseButton").getText());
     }
 
     @Test
-    void playStartsTheFirstSongWhenNothingIsPlayingYet() {
+    void choosingAModeStartsItPlaying() {
         press("shuffleModeButton");
-        assertEquals("Nothing playing", label("nowPlayingTitle").getText());
 
-        press("playPauseButton");
-
-        assertNotEquals("Nothing playing", label("nowPlayingTitle").getText());
+        assertNotEquals("Nothing playing", label("nowPlayingTitle").getText(),
+                "choosing a mode is a request to hear it");
+        assertEquals("Pause", button("playPauseButton").getText());
     }
 
     // ---- navigation ------------------------------------------------------
@@ -184,22 +184,21 @@ class TransportControlsTest extends JavaFxTestBase {
     }
 
     @Test
-    void choosingAModeClearsWhateverTheLastModeWasShowing() {
-        press("shuffleModeButton");
-        press("nextButton");
-        assertNotEquals("Nothing playing", label("nowPlayingTitle").getText());
-
+    void choosingAModeReplacesWhateverTheLastOneWasShowing() {
         press("alphabeticalModeButton");
+        String alphabeticalFirst = label("nowPlayingTitle").getText();
 
-        assertEquals("Nothing playing", label("nowPlayingTitle").getText());
-        assertEquals("No song loaded", status().getText());
+        press("arrivalModeButton");
+
+        assertNotEquals(alphabeticalFirst, label("nowPlayingTitle").getText(),
+                "the new mode decides what plays, not the old one");
+        assertEquals("", status().getText());
     }
 
     @Test
     void alphabeticalVisitsTitlesInOrder() {
         press("alphabeticalModeButton");
 
-        press("nextButton");
         String first = label("nowPlayingTitle").getText();
         press("nextButton");
         String second = label("nowPlayingTitle").getText();

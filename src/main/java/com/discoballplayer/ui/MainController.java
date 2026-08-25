@@ -482,10 +482,28 @@ public class MainController implements PlaybackListener {
         selectMode(new AlphabeticalMode());
     }
 
+    /**
+     * Switches mode and starts playing its first song.
+     *
+     * <p>Choosing a mode is a request to hear it. Leaving the bar on "Nothing playing" made
+     * the selection look like it had failed, and every mode was one extra click from doing
+     * anything.</p>
+     */
     private void selectMode(PlaybackMode mode) {
         player.setMode(mode);
         clearNowPlaying();
-        statusLabel.setText(NO_SONG_LOADED);
+        statusLabel.setText("");
+        try {
+            if (player.hasNext()) {
+                player.next();
+                player.play();
+            } else {
+                statusLabel.setText(NO_SONG_LOADED);
+            }
+        } catch (EmptyStructureException empty) {
+            // An empty library is not an error here; there is simply nothing to start.
+            statusLabel.setText(NO_SONG_LOADED);
+        }
         refreshTransport();
     }
 

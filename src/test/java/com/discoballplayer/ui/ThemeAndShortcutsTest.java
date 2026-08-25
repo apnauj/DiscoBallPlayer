@@ -162,10 +162,13 @@ class ThemeAndShortcutsTest extends JavaFxTestBase {
 
     @Test
     void spaceTogglesPlayback() {
+        // The view opens on a mode that is already playing.
+        assertEquals("Pause", button("playPauseButton").getText());
+
+        pressKey(KeyCode.SPACE);
         assertEquals("Play", button("playPauseButton").getText());
 
         pressKey(KeyCode.SPACE);
-
         assertEquals("Pause", button("playPauseButton").getText());
     }
 
@@ -195,9 +198,10 @@ class ThemeAndShortcutsTest extends JavaFxTestBase {
         onFxThread(() -> searchField().requestFocus());
         flushFxThread();
 
+        String before = button("playPauseButton").getText();
         pressKey(KeyCode.SPACE);
 
-        assertEquals("Play", button("playPauseButton").getText(),
+        assertEquals(before, button("playPauseButton").getText(),
                 "a space typed into a search box is a space, not a transport command");
     }
 
@@ -205,9 +209,12 @@ class ThemeAndShortcutsTest extends JavaFxTestBase {
     void arrowKeysInTheSearchBoxMoveTheCaretRatherThanTheQueue() {
         onFxThread(() -> searchField().requestFocus());
         flushFxThread();
+        String playing = label("nowPlayingTitle").getText();
+
         pressKey(KeyCode.RIGHT);
 
-        assertEquals("Nothing playing", label("nowPlayingTitle").getText());
+        assertEquals(playing, label("nowPlayingTitle").getText(),
+                "an arrow key in a text field moves the caret, not the queue");
     }
 
     // ---- helpers ---------------------------------------------------------

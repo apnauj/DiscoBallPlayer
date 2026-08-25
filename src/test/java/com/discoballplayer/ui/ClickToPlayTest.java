@@ -82,6 +82,7 @@ class ClickToPlayTest extends JavaFxTestBase {
 
     @Test
     void playingASongFromTheTableShowsItInTheBar() {
+        press("shuffleModeButton");
         Song target = songTitled("Ojitos Lindos");
 
         play(target);
@@ -92,6 +93,10 @@ class ClickToPlayTest extends JavaFxTestBase {
 
     @Test
     void playingASongStartsPlayback() {
+        press("shuffleModeButton");
+        press("playPauseButton");
+        assertEquals("Play", button("playPauseButton").getText());
+
         play(songTitled("Dare"));
 
         assertTrue(controller.player().isPlaying());
@@ -108,6 +113,36 @@ class ClickToPlayTest extends JavaFxTestBase {
         play(songTitled("Dare"));
 
         assertEquals("", status().getText());
+    }
+
+    @Test
+    void aSongAddedWhileAModeIsPlayingCanBePlayedImmediately() {
+        // Used to be impossible: the mode built its structure at load() and never heard about
+        // a later addition, so the song sat in the table and refused to play.
+        press("shuffleModeButton");
+        Song latecomer = new Song("Added While Playing", java.util.List.of(new Artist("Nobody")),
+                null, 100, Genre.JAZZ, 2024);
+        onFxThread(() -> controller.player().addSong(latecomer));
+        flushFxThread();
+
+        play(latecomer);
+
+        assertEquals("Added While Playing", label("nowPlayingTitle").getText());
+        assertEquals("", status().getText());
+    }
+
+    @Test
+    void addingASongDoesNotDisturbWhatIsPlaying() {
+        press("alphabeticalModeButton");
+        String playing = label("nowPlayingTitle").getText();
+
+        onFxThread(() -> controller.player().addSong(
+                new Song("Aaa First Alphabetically", java.util.List.of(new Artist("Nobody")),
+                        null, 100, Genre.JAZZ, 2024)));
+        flushFxThread();
+
+        assertEquals(playing, label("nowPlayingTitle").getText(),
+                "an insertion must not move the cursor off the song being played");
     }
 
     @Test
@@ -137,11 +172,13 @@ class ClickToPlayTest extends JavaFxTestBase {
     void aSingleClickPlaysNothing() {
         showTable();
         TableRow<Song> row = firstRenderedRow();
+        String playing = label("nowPlayingTitle").getText();
 
         onFxThread(() -> Event.fireEvent(row, singleClick()));
         flushFxThread();
 
-        assertEquals("Nothing playing", label("nowPlayingTitle").getText());
+        assertEquals(playing, label("nowPlayingTitle").getText(),
+                "selecting a row is not asking to hear it");
     }
 
     @Test
@@ -152,10 +189,13 @@ class ClickToPlayTest extends JavaFxTestBase {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("the table rendered no empty rows"));
 
+        String playing = label("nowPlayingTitle").getText();
+
         onFxThread(() -> Event.fireEvent(empty, doubleClick()));
         flushFxThread();
 
-        assertEquals("Nothing playing", label("nowPlayingTitle").getText());
+        assertEquals(playing, label("nowPlayingTitle").getText(),
+                "there is no song below the last row to play");
     }
 
     // ---- the mode that refuses -------------------------------------------
@@ -164,6 +204,7 @@ class ClickToPlayTest extends JavaFxTestBase {
     void arrivalOrderRefusesTheJumpAndSaysWhy() {
         press("arrivalModeButton");
         String before = label("nowPlayingTitle").getText();
+        assertNotEquals("Nothing playing", before, "the mode started playing");
 
         play(songTitled("Tania"));
 
@@ -191,15 +232,13 @@ class ClickToPlayTest extends JavaFxTestBase {
     }
 
     @Test
-    void aSongMissingFromTheModeIsReportedNotThrown() {
+    void aSongTheModeHasNeverSeenIsReportedNotThrown() {
         press("shuffleModeButton");
-        // Added after the mode built its structure, so the mode has never seen it.
-        Song latecomer = new Song("Added After The Mode Loaded", java.util.List.of(new Artist("Nobody")),
+        // Never added to the library at all, so no mode can have it.
+        Song stranger = new Song("Never In The Library", java.util.List.of(new Artist("Nobody")),
                 null, 100, Genre.JAZZ, 2024);
-        onFxThread(() -> controller.player().addSong(latecomer));
-        flushFxThread();
 
-        play(latecomer);
+        play(stranger);
 
         assertEquals("That song is not in the current queue", status().getText());
     }
@@ -207,12 +246,13 @@ class ClickToPlayTest extends JavaFxTestBase {
     @Test
     void aRefusalLeavesTheWindowUsable() {
         press("arrivalModeButton");
+        String before = label("nowPlayingTitle").getText();
         play(songTitled("Tania"));
 
         // If the exception had escaped, the handlers below would be running on a broken window.
         press("nextButton");
 
-        assertNotEquals("Nothing playing", label("nowPlayingTitle").getText());
+        assertNotEquals(before, label("nowPlayingTitle").getText());
     }
 
     // ---- the guard and the catch, separately -----------------------------
