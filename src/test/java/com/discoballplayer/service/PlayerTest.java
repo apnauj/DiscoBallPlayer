@@ -43,12 +43,20 @@ class PlayerTest {
         boolean previousUnsupported;
         boolean exhausted;
         boolean jumpSupported = true;
+        final List<Song> added = new ArrayList<>();
 
         @Override
         public void load(MusicLibrary library) {
             loadCount++;
             loadedFrom = library;
             currentSong = null;
+            added.clear();
+        }
+
+        /** Added by Track B when PlaybackMode gained add(); records rather than reloads. */
+        @Override
+        public void add(Song song) {
+            added.add(song);
         }
 
         @Override

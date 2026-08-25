@@ -240,6 +240,9 @@ public class DemoPlayerService implements PlayerService {
     @Override
     public void addSong(Song song) {
         songs.add(song);
+        if (mode != null) {
+            mode.add(song);
+        }
         fireLibraryChanged();
     }
 

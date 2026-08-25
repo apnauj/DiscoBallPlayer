@@ -198,10 +198,21 @@ public class Player implements PlayerService {
 
     // ---------- library ----------
 
+    /**
+     * Adds a song to the catalogue and to the mode currently playing.
+     *
+     * <p>Handing it to the mode as well is what stops a song from being added and then not
+     * turning up until the mode is reselected. The mode inserts where its own structure says
+     * the song belongs, so nothing is rebuilt: shuffle is not re-randomized and a drained
+     * arrival queue is not refilled.</p>
+     */
     @Override
     public void addSong(Song song) {
         Objects.requireNonNull(song, "The song can't be null.");
         if (library.addSong(song)) {
+            if (mode != null) {
+                mode.add(song);
+            }
             fireLibraryChanged();
         }
     }

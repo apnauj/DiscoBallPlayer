@@ -20,6 +20,16 @@ public interface PlaybackMode {
     /**
      * @throws com.discoballplayer.exception.EmptyStructureException when nothing is left to play
      */
+    /**
+     * Takes a newly added song into this mode's structure, without rebuilding it.
+     *
+     * <p>Rebuilding would be the easy answer and the wrong one: it re-randomizes shuffle, and
+     * it refills a queue arrival order has already drained. Each mode inserts where its own
+     * structure says the song belongs — the back of the queue, the sorted position in the
+     * tree, the ring — and the current song is preserved.</p>
+     */
+    void add(Song song);
+
     Song next();
 
     /**

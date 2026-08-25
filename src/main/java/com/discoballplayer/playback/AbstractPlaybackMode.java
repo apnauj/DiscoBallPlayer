@@ -1,5 +1,7 @@
 package com.discoballplayer.playback;
 
+import java.util.Objects;
+
 import com.discoballplayer.model.MusicLibrary;
 import com.discoballplayer.model.Song;
 
@@ -35,6 +37,34 @@ public abstract class AbstractPlaybackMode implements PlaybackMode {
      * {@link #next()}, when the caller actually asks for a song.</p>
      */
     protected abstract void loadStructure(MusicLibrary library);
+
+    /**
+     * Inserts the song into this mode's structure and repairs any cursor the insertion
+     * invalidated, keeping {@link #current()} where it was.
+     */
+    @Override
+    public final void add(Song song) {
+        Objects.requireNonNull(song, "The song can't be null.");
+        insertIntoStructure(song);
+        reseat();
+    }
+
+    /**
+     * Places {@code song} where this mode's structure says it belongs.
+     *
+     * <p>Called by {@link #add}. Implementations insert only; repositioning is {@link #reseat}.</p>
+     */
+    protected abstract void insertIntoStructure(Song song);
+
+    /**
+     * Re-seats a cursor that the insertion invalidated.
+     *
+     * <p>Does nothing by default, which is right for a mode that navigates without a cursor.
+     * A mode holding one overrides this, because a structural change leaves a live cursor
+     * pointing at a detached node.</p>
+     */
+    protected void reseat() {
+    }
 
     /**
      * @return the library this mode was last loaded from, or {@code null} before the first
