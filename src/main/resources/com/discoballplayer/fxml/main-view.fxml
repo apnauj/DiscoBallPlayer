@@ -18,6 +18,9 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Circle?>
 <?import javafx.scene.layout.VBox?>
 
 <!--
@@ -27,11 +30,22 @@
       center  library        search box and the song table
       bottom  now playing    cover, metadata, progress and transport (B3, B4)
 -->
-<BorderPane fx:id="rootPane"
-            xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.discoballplayer.ui.MainController"
-            styleClass="root-pane">
+<!--
+    The shell sits under a light layer rather than beside it. The lights have to be drawn over
+    the window because the shell paints an opaque gradient of its own, and they are
+    mouse-transparent so nothing they cover stops being clickable.
+-->
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.discoballplayer.ui.MainController">
+
+<!--
+    minHeight and minWidth are pinned to zero on purpose. As the scene root this pane was sized
+    to the window regardless of what its content asked for; inside a StackPane its own minimum
+    is honoured instead, and the sidebar's content asks for more than the window is tall. Left
+    computed, the shell grows past the window and the whole layout shifts.
+-->
+<BorderPane fx:id="rootPane" styleClass="root-pane" minWidth="0" minHeight="0">
 
     <left>
         <VBox fx:id="sidebar" styleClass="sidebar" spacing="24" minWidth="200" prefWidth="220">
@@ -39,9 +53,19 @@
                 <Insets top="20" right="18" bottom="20" left="18"/>
             </padding>
 
-            <Label text="DiscoBallPlayer" styleClass="brand-title"/>
+            <!-- The ball hangs above the marquee rather than beside it: at 21px bold the
+                 title needs the sidebar's full width, and a ball on the same row truncated it
+                 to "DiscoBall...". -->
+            <VBox fx:id="brandBox" styleClass="brand-box" spacing="6" alignment="CENTER">
+                <!-- The image is set by the controller, which lifts it off its background
+                     first. An absent or unreadable file leaves this empty and nothing else
+                     changes: a logo is decoration, and decoration does not stop a window. -->
+                <ImageView fx:id="brandLogo" fitWidth="72" fitHeight="72" preserveRatio="true"/>
+                <Label text="DiscoBallPlayer" styleClass="brand-title"/>
+                <Label text="DANCE ALL NIGHT" styleClass="brand-subtitle"/>
+            </VBox>
 
-            <VBox fx:id="modeSelectorBox" styleClass="sidebar-section" spacing="8">
+            <VBox fx:id="modeSelectorBox" styleClass="sidebar-section, glass-panel" spacing="8">
                 <Label text="PLAYBACK MODE" styleClass="section-title"/>
 
                 <fx:define>
@@ -56,7 +80,7 @@
                              onAction="#onAlphabeticalMode" styleClass="mode-option"/>
             </VBox>
 
-            <VBox fx:id="filterBox" styleClass="sidebar-section" spacing="10">
+            <VBox fx:id="filterBox" styleClass="sidebar-section, glass-panel" spacing="10">
                 <Label text="FILTERS" styleClass="section-title"/>
 
                 <Label text="Genre" styleClass="filter-label"/>
@@ -115,15 +139,17 @@
 
     <bottom>
         <HBox fx:id="nowPlayingBar" styleClass="now-playing-bar"
-              alignment="CENTER_LEFT" spacing="18" minHeight="96">
+              alignment="CENTER_LEFT" spacing="18" minHeight="100">
             <padding>
                 <Insets top="16" right="20" bottom="16" left="20"/>
             </padding>
 
             <!-- 64x64 by contract: B3-02 swaps the image, never the box, so the bar
                  never reflows when a cover is missing or fails to decode. -->
-            <ImageView fx:id="coverImage" fitWidth="64" fitHeight="64"
-                       preserveRatio="false" smooth="true"/>
+            <StackPane styleClass="cover-frame">
+                <ImageView fx:id="coverImage" fitWidth="64" fitHeight="64"
+                           preserveRatio="false" smooth="true"/>
+            </StackPane>
 
             <VBox alignment="CENTER_LEFT" spacing="4" minWidth="200" prefWidth="240">
                 <Label fx:id="nowPlayingTitle" styleClass="now-playing-title" text="Nothing playing"/>
@@ -188,7 +214,23 @@
             <Label fx:id="statusLabel" styleClass="status-label" wrapText="true"
                    minWidth="140" maxWidth="180" alignment="CENTER_RIGHT"
                    textAlignment="RIGHT"/>
+
+            <!-- The ball hangs here rather than in the sidebar. The logo is a mirror ball too,
+                 so the drawn one belongs well away from it, and the sidebar has no height to
+                 spare once the filters are in, least of all at the window's minimum size. This
+                 bar is a fixed height that always exists. Filled by the controller: the ball is
+                 drawn, so FXML has nothing to say about it beyond where it hangs. -->
+            <StackPane fx:id="discoBallSlot"
+                       minWidth="52" prefWidth="52" maxWidth="52"
+                       minHeight="52" prefHeight="52" maxHeight="52"/>
         </HBox>
     </bottom>
 
 </BorderPane>
+
+    <Pane fx:id="floorLights" mouseTransparent="true" pickOnBounds="false">
+        <Circle fx:id="lightOne" styleClass="floor-light" radius="200"/>
+        <Circle fx:id="lightTwo" styleClass="floor-light-far" radius="150"/>
+    </Pane>
+
+</StackPane>

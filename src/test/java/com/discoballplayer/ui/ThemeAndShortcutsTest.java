@@ -23,6 +23,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,16 @@ class ThemeAndShortcutsTest extends JavaFxTestBase {
     @BeforeAll
     static void startJavaFx() {
         startToolkit();
+        // This class measures where things sit, and an entrance animation moves them on
+        // purpose. getBoundsInParent includes a node's translation, so a transition still in
+        // flight when the theme is toggled reads as the theme having moved something. Holding
+        // the floor still is what makes the layout claim about the theme and nothing else.
+        AnimationManager.setEnabled(false);
+    }
+
+    @AfterAll
+    static void letTheFloorDanceAgain() {
+        AnimationManager.resetToDefault();
     }
 
     @BeforeEach

@@ -710,6 +710,71 @@ three in `#35`; these are the two that stayed invisible until the UI caught up.
 
 ---
 
+### B11 — Disco retro visual layer (70s/80s, purple)
+
+Visual only. No business logic, model or structure is touched, and no existing class, method
+or `fx:id` is renamed.
+
+- [x] **[B11-01] Palette and base components**
+  - **Files:** `resources/com/discoballplayer/css/app.css`, `resources/com/discoballplayer/css/dark.css`
+  - **Objective:** The specified dance-floor palette as tokens. It goes in `dark.css` because
+    that is the sheet the window opens wearing; `app.css` keeps the lights-up variant of the
+    same hues. Surfaces are gradients rather than flat colour, corners are round, and depth
+    comes from coloured glows instead of grey shadows. Every glow names a token, so the two
+    themes light differently without a rule being restated.
+  - **Found on the way:** a "pill" radius of 999 on a six-pixel slider track does not clamp --
+    JavaFX computes a border shape from it, and the track came out over 2000px wide, painting a
+    dark line across the window. Thin elements now get an exact radius, and a test measures
+    painted extent against layout box so it cannot come back.
+  - **Verification:** `mvn test -Dtest=DiscoThemeTest`
+
+- [x] **[B11-02] The theme applied across the screens**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/fxml/song-dialog.fxml`, `resources/com/discoballplayer/css/app.css`, `ui/MainController.java`
+  - **Objective:** Smoked-glass panels in the sidebar, a lit frame around the cover, a marquee
+    brand block, and the add/edit dialog dressed as a lit booth rather than a grey sheet. The
+    row that is playing is marked in amber, which is the one colour in the window that carries
+    meaning rather than mood.
+  - **Note:** the mark is a pseudo-class, not a style class. A class has to be added and removed
+    by hand and a recycled row ends up carrying it twice; JavaFX tracks a pseudo-class as a
+    boolean, so it cannot drift. It also needs `TableView.refresh()` when the song changes,
+    because the row's item did not change -- only the song it is compared against.
+  - **Verification:** `mvn test -Dtest=DiscoThemeTest#theMarkMovesWithTheSong`
+- [x] **[B11-03] Animations**
+  - **Files:** `ui/AnimationManager.java`, `ui/DiscoBall.java`, `ui/MainController.java`, `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/css/app.css`
+  - **Objective:** A mirror ball turning, two floor lights pulsing out of phase, a glow breathing
+    on the transport and on the now-playing title, buttons that lift under the pointer, and the
+    table arriving when a mode is chosen. One switch turns all of it off:
+    `AnimationManager.setEnabled(false)`.
+  - **Note:** new UI classes go in `com.discoballplayer.ui`. `module-info.java` was frozen in
+    F0-09 and opens only that package, so a `ui.components` subpackage could not be reflected
+    into by FXML.
+  - **Found on the way:** three faults, none of which any existing test could see.
+    A drop shadow's bounds come from its radius and a node's bounds feed the layout around it,
+    so breathing the radius on the transport glyph pushed the table 22px on every breath --
+    the animation now breathes spread, which changes nothing's size. The mirror ball is a Group
+    sized by its contents, including a glow and a mount rod, so laid out normally the sidebar's
+    minimum depended on a decoration; it is unmanaged now. And wrapping the shell in a StackPane
+    exposed the shell's own minimum, which as scene root had always been ignored -- pinned to
+    zero, which is what the Scene did for it before.
+  - **Verification:** `mvn test -Dtest=AnimationsTest`
+- [x] **[B11-04] Logo integration**
+  - **Files:** `ui/Logo.java`, `ui/MainController.java`, `Main.java`, `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/images/logo.jpeg`
+  - **Objective:** The logo in the sidebar header and on the window and dock icon, with a
+    fallback that leaves the window working when the file is missing or unreadable.
+  - **Note:** the artwork ships as a JPEG, which has no alpha, so on the dance floor it would be
+    a white square with a logo inside it. The background is removed at load by a flood fill
+    inward from the border. Not a colour key: the artwork has white in it -- a lit mirror tile,
+    the highlight on the note head -- and keying on colour alone punches holes through both.
+    Only background connected to an edge is background.
+  - **Ownership crossing:** `Main.java` gains one method, `wearTheLogo`, for the window icon.
+  - **Also:** the drawn mirror ball moved from the sidebar to the now-playing bar. The logo is a
+    mirror ball too, so the two do not belong side by side, and the sidebar has no height to
+    spare at the window's minimum size. It sits last in the bar on purpose: when the bar runs
+    out of room the thing that gets clipped should be decoration, never a control.
+  - **Verification:** `mvn test -Dtest=LogoTest`
+
+---
+
 ### B10 — Fixes from the suite itself
 
 - [x] **[B10-01] The UI tests stop racing the FX thread**

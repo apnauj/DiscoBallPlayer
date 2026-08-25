@@ -12,6 +12,7 @@ import com.discoballplayer.playback.audio.JavaFxAudioEngine;
 import com.discoballplayer.repository.JsonLibraryRepository;
 import com.discoballplayer.repository.LibraryRepository;
 import com.discoballplayer.service.Player;
+import com.discoballplayer.ui.Logo;
 import com.discoballplayer.ui.MainController;
 import com.discoballplayer.util.SampleLibrary;
 
@@ -19,6 +20,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 /**
@@ -61,8 +63,25 @@ public class Main extends Application {
         stage.setTitle(WINDOW_TITLE);
         stage.setMinWidth(MIN_WIDTH);
         stage.setMinHeight(MIN_HEIGHT);
+        wearTheLogo(stage);
         stage.setScene(scene);
         stage.show();
+    }
+
+    /**
+     * Puts the logo on the window and in the dock, when there is one.
+     *
+     * <p>Guarded for the same reason the library load is: an icon is decoration, and an
+     * application that will not open because a decoration is missing has its priorities
+     * backwards. A missing file leaves the platform's default icon in place.</p>
+     *
+     * <p>Track B author: this method is the only edit to this file, made for B11-04.</p>
+     */
+    private static void wearTheLogo(Stage stage) {
+        Image logo = Logo.image();
+        if (logo != null) {
+            stage.getIcons().add(logo);
+        }
     }
 
     /**
