@@ -63,6 +63,28 @@ public class ShuffleMode extends AbstractPlaybackMode {
         }
     }
 
+    /**
+     * Adds to the ring without re-randomizing the songs already in it.
+     *
+     * @implNote Time complexity: O(1) to insert, O(n) to re-seat the cursor.
+     */
+    @Override
+    protected void insertIntoStructure(Song song) {
+        ring.insertAtEnd(song);
+    }
+
+    /**
+     * Any insertion invalidates a live cursor, so this walks back to the song being played.
+     */
+    @Override
+    protected void reseat() {
+        Song playing = current();
+        cursor = null;
+        if (playing != null) {
+            jumpTo(playing);
+        }
+    }
+
     @Override
     public Song next() {
         if (ring.isEmpty()) {

@@ -44,6 +44,7 @@ public class DemoPlayerService implements PlayerService {
     private PlaybackMode mode;
     private int index = -1;
     private boolean playing;
+    private double volume = 1;
     private int elapsedSeconds;
 
     public DemoPlayerService() {
@@ -232,6 +233,17 @@ public class DemoPlayerService implements PlayerService {
         listeners.forEach(listener -> listener.onPlaybackStateChanged(value));
     }
 
+    /** Remembered only: the stub makes no sound, but the control must still behave. */
+    @Override
+    public void setVolume(double volume) {
+        this.volume = Math.min(1, Math.max(0, volume));
+    }
+
+    @Override
+    public double getVolume() {
+        return volume;
+    }
+
     @Override
     public boolean isPlaying() {
         return playing;
@@ -240,6 +252,9 @@ public class DemoPlayerService implements PlayerService {
     @Override
     public void addSong(Song song) {
         songs.add(song);
+        if (mode != null) {
+            mode.add(song);
+        }
         fireLibraryChanged();
     }
 

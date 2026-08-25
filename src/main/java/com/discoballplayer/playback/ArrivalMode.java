@@ -29,6 +29,16 @@ public class ArrivalMode extends AbstractPlaybackMode {
     }
 
     /**
+     * A song that arrives later goes to the back, which is what arrival order means.
+     *
+     * @implNote Time complexity: O(1).
+     */
+    @Override
+    protected void insertIntoStructure(Song song) {
+        queue.enqueue(song);
+    }
+
+    /**
      * Dequeues the next song permanently.
      *
      * @throws EmptyStructureException once the queue is drained; unlike shuffle, arrival order

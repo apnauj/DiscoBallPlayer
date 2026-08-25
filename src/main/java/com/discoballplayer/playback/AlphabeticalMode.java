@@ -36,6 +36,28 @@ public class AlphabeticalMode extends AbstractPlaybackMode {
     }
 
     /**
+     * Inserts at the song's sorted position, so a title added later still plays in order.
+     *
+     * @implNote Time complexity: O(log n) average, O(n) worst case, plus the re-seat.
+     */
+    @Override
+    protected void insertIntoStructure(Song song) {
+        tree.insert(song);
+    }
+
+    /**
+     * Any insertion invalidates a live cursor, so this walks back to the song being played.
+     */
+    @Override
+    protected void reseat() {
+        Song playing = current();
+        cursor = null;
+        if (playing != null) {
+            jumpTo(playing);
+        }
+    }
+
+    /**
      * @throws EmptyStructureException if nothing was loaded
      * @throws NoSuchElementException past the last title
      */

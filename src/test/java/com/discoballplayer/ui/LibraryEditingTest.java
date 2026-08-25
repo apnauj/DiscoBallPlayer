@@ -122,9 +122,18 @@ class LibraryEditingTest extends JavaFxTestBase {
     // ---- rating slider ---------------------------------------------------
 
     @Test
-    void theSliderIsOffWhileNothingIsPlaying() {
+    void theSliderIsOffWhenTheBarHasNoSong() {
+        // The view opens on a playing mode now, so the idle state has to be asked for.
+        controller.onSongChanged(null);
+        flushFxThread();
+
         assertTrue(slider().isDisabled());
         assertEquals(0, slider().getValue(), 1e-9);
+    }
+
+    @Test
+    void theSliderIsLiveWhileASongIsPlaying() {
+        assertFalse(slider().isDisabled(), "the view opens on a mode that is already playing");
     }
 
     @Test

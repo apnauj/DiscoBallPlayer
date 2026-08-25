@@ -47,6 +47,17 @@ public interface PlayerService {
 
     boolean isPlaying();
 
+    /**
+     * Sets the output level, {@code 0.0} silent to {@code 1.0} full. Values outside that range
+     * are clamped.
+     */
+    void setVolume(double volume);
+
+    /**
+     * @return the current output level between {@code 0.0} and {@code 1.0}
+     */
+    double getVolume();
+
     void addSong(Song song);
 
     /**

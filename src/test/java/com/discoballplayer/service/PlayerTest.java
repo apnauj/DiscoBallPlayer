@@ -43,12 +43,20 @@ class PlayerTest {
         boolean previousUnsupported;
         boolean exhausted;
         boolean jumpSupported = true;
+        final List<Song> added = new ArrayList<>();
 
         @Override
         public void load(MusicLibrary library) {
             loadCount++;
             loadedFrom = library;
             currentSong = null;
+            added.clear();
+        }
+
+        /** Added by Track B when PlaybackMode gained add(); records rather than reloads. */
+        @Override
+        public void add(Song song) {
+            added.add(song);
         }
 
         @Override
@@ -132,6 +140,19 @@ class PlayerTest {
 
     /** Records engine calls and lets a test fire the engine's callbacks by hand. */
     private static final class FakeAudio implements AudioEngine {
+
+        double volume = 1;
+
+        /** Added by Track B when AudioEngine gained volume; records rather than plays. */
+        @Override
+        public void setVolume(double level) {
+            volume = Math.min(1, Math.max(0, level));
+        }
+
+        @Override
+        public double getVolume() {
+            return volume;
+        }
         final List<String> calls = new ArrayList<>();
         java.util.function.IntConsumer progress = elapsed -> { };
         Runnable completion = () -> { };

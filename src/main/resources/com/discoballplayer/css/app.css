@@ -414,3 +414,41 @@
     -fx-shape: " ";
     -fx-padding: 0;
 }
+
+/* ======================================================================
+   Filters
+   ====================================================================== */
+
+.filter-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+.filter-summary {
+    -fx-font-size: 11px;
+    -fx-text-fill: -db-text-muted;
+}
+
+/* ======================================================================
+   Icon transport
+   ====================================================================== */
+
+.icon-button {
+    -fx-min-width: 44;
+    -fx-min-height: 38;
+    -fx-padding: 6 12 6 12;
+    -fx-content-display: graphic-only;
+}
+
+.transport-icon {
+    -fx-fill: -db-text;
+}
+
+/* The icon has to follow the button it sits on, or a filled Play button gets a dark glyph. */
+.primary-button .transport-icon {
+    -fx-fill: -db-text-on-accent;
+}
+
+.icon-button:disabled .transport-icon {
+    -fx-fill: -db-text-muted;
+}

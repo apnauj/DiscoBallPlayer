@@ -9,6 +9,7 @@ import java.util.Objects;
 import com.discoballplayer.exception.EmptyStructureException;
 import com.discoballplayer.exception.SongNotFoundException;
 import com.discoballplayer.model.Album;
+import com.discoballplayer.model.Genre;
 import com.discoballplayer.model.Song;
 import com.discoballplayer.playback.AlphabeticalMode;
 import com.discoballplayer.playback.ArrivalMode;
@@ -31,6 +32,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextInputControl;
@@ -41,6 +43,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.shape.SVGPath;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -77,6 +80,12 @@ public class MainController implements PlaybackListener {
     private static final String NO_SONG_LOADED = "No song loaded";
     private static final String NO_JUMPING = "Arrival order plays in the order songs arrived";
     private static final String NOT_IN_MODE = "That song is not in the current queue";
+
+    /** Shown in a filter combo to mean "do not filter on this". */
+    private static final String ANY = "All";
+
+    private static final String PLAY_ICON = "M 5,3 L 16,10 L 5,17 Z";
+    private static final String PAUSE_ICON = "M 5,3 L 8,3 L 8,17 L 5,17 Z M 12,3 L 15,3 L 15,17 L 12,17 Z";
 
     /**
      * The seam. Injected, never constructed here.
@@ -211,6 +220,30 @@ public class MainController implements PlaybackListener {
     @FXML
     private javafx.scene.layout.BorderPane rootPane;
 
+    @FXML
+    private ComboBox<String> genreFilter;
+
+    @FXML
+    private ComboBox<String> artistFilter;
+
+    @FXML
+    private Slider ratingFilter;
+
+    @FXML
+    private Label ratingFilterLabel;
+
+    @FXML
+    private Label filterSummary;
+
+    @FXML
+    private Slider volumeSlider;
+
+    @FXML
+    private Label volumeLabel;
+
+    @FXML
+    private SVGPath playPauseIcon;
+
     /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
@@ -223,11 +256,14 @@ public class MainController implements PlaybackListener {
         showMatches(searchField.getText());
         clearNowPlaying();
         statusLabel.setText(NO_SONG_LOADED);
+        showPlaying(false);
         shuffleModeButton.setSelected(true);
         selectMode(new ShuffleMode());
         configureSelectionBinding();
         configureClickToPlay();
         configureRatingSlider();
+        configureFilters();
+        configureVolume();
         // The scene does not exist while the controller is being initialised, so the theme and
         // the shortcuts are installed the moment the view is attached to one.
         rootPane.sceneProperty().addListener((observable, previous, scene) -> {
@@ -346,7 +382,10 @@ public class MainController implements PlaybackListener {
      */
     private void showMatches(String query) {
         Song selected = libraryTable.getSelectionModel().getSelectedItem();
-        List<Song> matches = player.search(query);
+        List<Song> matches = player.search(query).stream()
+                .filter(this::passesFilters)
+                .toList();
+        describeFilters(matches.size(), player.listAll().size());
         libraryTable.setItems(FXCollections.observableArrayList(matches));
         // Replacing the items clears the selection, which would disable Edit and Delete every
         // time a rating change refreshed the table. Put the user's row back.
@@ -482,10 +521,28 @@ public class MainController implements PlaybackListener {
         selectMode(new AlphabeticalMode());
     }
 
+    /**
+     * Switches mode and starts playing its first song.
+     *
+     * <p>Choosing a mode is a request to hear it. Leaving the bar on "Nothing playing" made
+     * the selection look like it had failed, and every mode was one extra click from doing
+     * anything.</p>
+     */
     private void selectMode(PlaybackMode mode) {
         player.setMode(mode);
         clearNowPlaying();
-        statusLabel.setText(NO_SONG_LOADED);
+        statusLabel.setText("");
+        try {
+            if (player.hasNext()) {
+                player.next();
+                player.play();
+            } else {
+                statusLabel.setText(NO_SONG_LOADED);
+            }
+        } catch (EmptyStructureException empty) {
+            // An empty library is not an error here; there is simply nothing to start.
+            statusLabel.setText(NO_SONG_LOADED);
+        }
         refreshTransport();
     }
 
@@ -589,6 +646,94 @@ public class MainController implements PlaybackListener {
         } finally {
             syncingRating = false;
         }
+    }
+
+    // ---- filters ---------------------------------------------------------
+
+    private void configureFilters() {
+        genreFilter.getItems().add(ANY);
+        for (Genre genre : Genre.values()) {
+            genreFilter.getItems().add(genre.getDisplayName());
+        }
+        genreFilter.setValue(ANY);
+
+        refreshArtistChoices();
+
+        ratingFilter.valueProperty().addListener((observable, previous, value) -> {
+            ratingFilterLabel.setText("Rating " + (int) Math.round(value.doubleValue()) + "+");
+            showMatches(searchField.getText());
+        });
+    }
+
+    /**
+     * Rebuilds the artist list from the library, keeping the current choice when it survives.
+     *
+     * <p>The list is derived rather than stored: an artist exists as a filter option exactly
+     * as long as a song credits them, so deleting the last song by someone removes them
+     * without anything having to remember to.</p>
+     */
+    private void refreshArtistChoices() {
+        String chosen = artistFilter.getValue();
+        List<String> artists = player.listAll().stream()
+                .map(Song::getArtistsNames)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+
+        artistFilter.getItems().setAll(ANY);
+        artistFilter.getItems().addAll(artists);
+        artistFilter.setValue(artistFilter.getItems().contains(chosen) ? chosen : ANY);
+    }
+
+    @FXML
+    private void onFilterChanged() {
+        showMatches(searchField.getText());
+    }
+
+    @FXML
+    private void onClearFilters() {
+        genreFilter.setValue(ANY);
+        artistFilter.setValue(ANY);
+        ratingFilter.setValue(0);
+        searchField.clear();
+        showMatches("");
+    }
+
+    /**
+     * @return whether the song passes every active filter
+     */
+    private boolean passesFilters(Song song) {
+        String genre = genreFilter.getValue();
+        if (genre != null && !ANY.equals(genre) && !song.getGenre().getDisplayName().equals(genre)) {
+            return false;
+        }
+        String artist = artistFilter.getValue();
+        if (artist != null && !ANY.equals(artist) && !song.getArtistsNames().equals(artist)) {
+            return false;
+        }
+        return song.getRating() >= (int) Math.round(ratingFilter.getValue());
+    }
+
+    private void describeFilters(int shown, int total) {
+        filterSummary.setText(shown == total
+                ? total + " songs"
+                : shown + " of " + total + " songs");
+    }
+
+    // ---- volume ----------------------------------------------------------
+
+    private void configureVolume() {
+        volumeSlider.setValue(player.getVolume() * 100);
+        showVolume(player.getVolume());
+        volumeSlider.valueProperty().addListener((observable, previous, value) -> {
+            double level = value.doubleValue() / 100;
+            player.setVolume(level);
+            showVolume(level);
+        });
+    }
+
+    private void showVolume(double level) {
+        volumeLabel.setText("Volume " + (int) Math.round(level * 100) + "%");
     }
 
     // ---- theme -----------------------------------------------------------
@@ -696,7 +841,16 @@ public class MainController implements PlaybackListener {
      */
     @Override
     public void onPlaybackStateChanged(boolean playing) {
-        Platform.runLater(() -> playPauseButton.setText(playing ? PAUSE : PLAY));
+        Platform.runLater(() -> showPlaying(playing));
+    }
+
+    /**
+     * The button is an icon now, so the state shows as a shape. The text is still set, because
+     * it is what a screen reader announces and what the tooltip shows.
+     */
+    private void showPlaying(boolean playing) {
+        playPauseButton.setText(playing ? PAUSE : PLAY);
+        playPauseIcon.setContent(playing ? PAUSE_ICON : PLAY_ICON);
     }
 
     @Override
@@ -706,6 +860,9 @@ public class MainController implements PlaybackListener {
 
     @Override
     public void onLibraryChanged() {
-        Platform.runLater(() -> showMatches(searchField.getText()));
+        Platform.runLater(() -> {
+            refreshArtistChoices();
+            showMatches(searchField.getText());
+        });
     }
 }
