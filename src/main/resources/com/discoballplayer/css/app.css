@@ -1,0 +1,676 @@
+/*
+ * DiscoBallPlayer -- disco retro theme, 70s/80s dance floor in purple.
+ *
+ * Every colour in this file is declared once in the token block below and referenced by name
+ * afterwards. No rule past that block contains a hex literal -- a test enforces it -- which is
+ * what lets dark.css re-theme the whole window by overriding the token block alone, with no
+ * rule duplicated and no layout recomputed. Glows follow the same rule: the colour inside
+ * dropshadow(...) is a token lookup, never a literal.
+ *
+ * This sheet holds the LIGHTS UP palette: the same purples read against a bright room. The
+ * dance floor -- the deep palette this project is designed around -- lives in dark.css, which
+ * the window wears by default.
+ *
+ * The block also overrides Modena's own looked-up colours (-fx-base, -fx-accent and friends).
+ * Controls we never style by hand -- the combo box popup, scroll bars, the text cursor --
+ * derive their colours from those, so overriding them is what keeps default-grey panels from
+ * appearing next to styled ones.
+ */
+
+.root {
+
+    /* ---- surfaces ---- */
+    -db-surface: #f1e9fb;
+    -db-surface-raised: #ffffff;
+    -db-surface-sunken: #e4d8f7;
+    -db-border: #d5c3f0;
+
+    /* ---- text ---- */
+    -db-text: #1b0b2e;
+    -db-text-secondary: #5b4383;
+    -db-text-muted: #8e7bb0;
+    -db-text-on-accent: #ffffff;
+
+    /* ---- accent and state ---- */
+    -db-accent: #7b2ff7;
+    -db-accent-hover: #9d4edd;
+    -db-accent-press: #5f1fc4;
+    -db-selection: #e4d3fb;
+    -db-hover: #f0e4ff;
+    -db-danger: #c62a62;
+
+    /*
+     * ---- disco accents ----
+     * Magenta highlights, amber for "this one is playing", cyan deliberately rare: it is the
+     * only cool colour on the floor, so it stops meaning anything if it turns up everywhere.
+     */
+    -db-magenta: #c520d8;
+    -db-gold: #b8860b;
+    -db-cyan: #1592be;
+
+    /*
+     * ---- glows ----
+     * There is no box-shadow in JavaFX; light comes from dropshadow(), and its colour has to
+     * carry the alpha because the effect takes no opacity of its own. Written as rgba() rather
+     * than 8-digit hex, which JavaFX CSS does not accept everywhere.
+     */
+    -db-glow-accent: rgba(123, 47, 247, 0.35);
+    -db-glow-magenta: rgba(197, 32, 216, 0.30);
+    -db-glow-gold: rgba(184, 134, 11, 0.35);
+    -db-glow-cyan: rgba(21, 146, 190, 0.28);
+
+    /* ---- gradient stops: no surface in this theme is a flat colour ---- */
+    -db-wash-top: #ffffff;
+    -db-wash-bottom: #ece1fa;
+    -db-halo: rgba(123, 47, 247, 0.10);
+    -db-halo-far: rgba(197, 32, 216, 0.06);
+    -db-chrome-light: #ffffff;
+    -db-chrome-dark: #cbb8e8;
+
+    /* ---- Modena's own tokens, so unstyled controls follow the theme ---- */
+    -fx-base: -db-surface-raised;
+    -fx-background: -db-surface;
+    -fx-control-inner-background: -db-surface-raised;
+    -fx-control-inner-background-alt: -db-surface-sunken;
+    -fx-accent: -db-accent;
+    -fx-default-button: -db-accent;
+    -fx-focus-color: -db-accent;
+    -fx-faint-focus-color: transparent;
+    -fx-text-background-color: -db-text;
+    -fx-selection-bar: -db-selection;
+    -fx-selection-bar-non-focused: -db-surface-sunken;
+
+    -fx-font-family: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+}
+
+/* ======================================================================
+   Regions
+   ====================================================================== */
+
+/*
+ * Nothing on this floor is a flat colour. The shell stacks two radial washes over a vertical
+ * gradient: one purple halo up at the ceiling where the ball hangs, one magenta bloom off to
+ * the right. Layered backgrounds are comma-separated and painted first-to-last, so the base
+ * gradient has to come first.
+ */
+.root-pane {
+    -fx-background-color:
+        linear-gradient(to bottom, -db-wash-top 0%, -db-surface 45%, -db-wash-bottom 100%),
+        radial-gradient(center 50% 0%, radius 65%, -db-halo 0%, transparent 100%),
+        radial-gradient(center 88% 18%, radius 42%, -db-halo-far 0%, transparent 100%);
+}
+
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, -db-surface-raised 0%, -db-surface 100%);
+    -fx-border-color: transparent -db-border transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.library-region {
+    -fx-background-color: transparent;
+}
+
+/*
+ * The bar is the front of the booth: a lit edge along the top rather than a border, and a glow
+ * that lifts it off the floor.
+ */
+.now-playing-bar {
+    -fx-background-color:
+        linear-gradient(to right, -db-accent 0%, -db-magenta 50%, -db-cyan 100%),
+        linear-gradient(to bottom, -db-surface-raised 0%, -db-surface-sunken 100%);
+    -fx-background-insets: 0, 2 0 0 0;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 26, 0.18, 0, -4);
+}
+
+/* Panels that should read as smoked glass rather than as solid boxes. */
+.glass-panel {
+    -fx-background-color: linear-gradient(to bottom right, -db-surface-raised 0%, -db-surface-sunken 100%);
+    -fx-background-radius: 16;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-padding: 14;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 18, 0.10, 0, 3);
+}
+
+/* ======================================================================
+   Typography
+   ====================================================================== */
+
+/*
+ * The marquee over the door. Wide tracking is what makes a geometric sans read as a 70s sign
+ * rather than as a heading, and it costs nothing to ship -- no font file has to be present.
+ */
+.brand-title {
+    -fx-font-family: "Futura", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -db-text;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 16, 0.35, 0, 0);
+}
+
+.brand-subtitle {
+    -fx-font-family: "Futura", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -db-gold;
+}
+
+.section-title {
+    -fx-font-family: "Futura", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -db-text-muted;
+}
+
+.now-playing-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -db-text;
+}
+
+.now-playing-artist {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+.time-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -db-text-muted;
+}
+
+.status-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+.field-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+/* A value the form derived rather than collected: reads as content, not as an empty input. */
+.derived-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: -db-text;
+    -fx-padding: 7 0 7 2;
+}
+
+.derived-value-absent {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-text-muted;
+    -fx-font-style: italic;
+}
+
+/* ======================================================================
+   Library table
+   ====================================================================== */
+
+.library-table {
+    -fx-background-color: linear-gradient(to bottom, -db-surface-raised 0%, -db-surface 100%);
+    -fx-background-radius: 16;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-table-cell-border-color: transparent;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 20, 0.12, 0, 4);
+}
+
+.library-table .column-header-background {
+    -fx-background-color: linear-gradient(to bottom, -db-surface-sunken 0%, -db-surface-raised 100%);
+    -fx-background-radius: 16 16 0 0;
+}
+
+.library-table .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 10 8 10 8;
+}
+
+.library-table .column-header .label {
+    -fx-text-fill: -db-text-secondary;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.library-table .table-row-cell {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: transparent transparent -db-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-cell-size: 34px;
+}
+
+.library-table .table-row-cell:odd {
+    -fx-background-color: -db-surface;
+}
+
+.library-table .table-row-cell:hover,
+.track-row:hover {
+    -fx-background-color: linear-gradient(to right, -db-hover 0%, -db-surface-sunken 100%);
+}
+
+/*
+ * A selected row is lit from its left edge: the inset trick paints a two-colour background
+ * where the second layer starts three pixels in, leaving a neon strip rather than a border --
+ * a border here would shift the cells sideways.
+ */
+.library-table .table-row-cell:selected,
+.track-row:selected {
+    -fx-background-color:
+        linear-gradient(to bottom, -db-magenta 0%, -db-accent 100%),
+        linear-gradient(to right, -db-selection 0%, -db-surface-sunken 100%);
+    -fx-background-insets: 0, 0 0 0 3;
+}
+
+/*
+ * The row that is actually playing. Amber is reserved for this one meaning across the whole
+ * window, so a glance at the table answers "which one is it" without reading a word. The
+ * left-edge strip is amber too, and it survives selection because this rule comes after it.
+ */
+.library-table .track-row:playing .table-cell {
+    -fx-text-fill: -db-gold;
+    -fx-font-weight: bold;
+}
+
+.library-table .track-row:playing {
+    -fx-background-color:
+        linear-gradient(to bottom, -db-gold 0%, -db-magenta 100%),
+        linear-gradient(to right, -db-selection 0%, -db-surface-sunken 100%);
+    -fx-background-insets: 0, 0 0 0 3;
+}
+
+.library-table .table-cell {
+    -fx-text-fill: -db-text;
+    -fx-padding: 0 8 0 8;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.library-table .table-row-cell:selected .table-cell {
+    -fx-text-fill: -db-text;
+    -fx-font-weight: bold;
+}
+
+/* An empty table should read as empty, not as a broken grid. */
+.library-table .table-row-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.library-table .table-row-cell:empty .table-cell {
+    -fx-border-color: transparent;
+}
+
+/* ======================================================================
+   Buttons
+   ====================================================================== */
+
+/*
+ * Chrome pills. The two-stop gradient is the whole trick: a lighter top edge and a darker
+ * bottom read as a rounded metal surface catching the ceiling light, which a flat fill never
+ * does. Hover lights the rim; the scale-up that goes with it is animated in Java, since
+ * JavaFX CSS has no transition property.
+ */
+.button {
+    -fx-background-color:
+        linear-gradient(to bottom, -db-surface-sunken 0%, -db-surface-raised 100%);
+    -fx-text-fill: -db-text;
+    -fx-background-radius: 999;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 999;
+    -fx-border-width: 1;
+    -fx-padding: 7 18 7 18;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(to bottom, -db-hover 0%, -db-surface-sunken 100%);
+    -fx-border-color: -db-accent-hover;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 14, 0.30, 0, 0);
+}
+
+.button:pressed {
+    -fx-background-color: -db-selection;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 6, 0.20, 0, 0);
+}
+
+.button:focused {
+    -fx-border-color: -db-accent-hover;
+}
+
+/* The lit button: primary actions and the transport. */
+.primary-button,
+.disco-button {
+    -fx-background-color: linear-gradient(to bottom, -db-accent-hover 0%, -db-accent 100%);
+    -fx-text-fill: -db-text-on-accent;
+    -fx-font-weight: bold;
+    -fx-border-color: -db-accent-hover;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 16, 0.35, 0, 0);
+}
+
+.primary-button:hover,
+.disco-button:hover {
+    -fx-background-color: linear-gradient(to bottom, -db-magenta 0%, -db-accent-hover 100%);
+    -fx-border-color: -db-magenta;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 24, 0.55, 0, 0);
+}
+
+.primary-button:pressed,
+.disco-button:pressed {
+    -fx-background-color: -db-accent-press;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 8, 0.25, 0, 0);
+}
+
+/*
+ * The disabled state has to read as disabled across the room: Previous greying out in arrival
+ * order is the visible proof that a queue cannot go backwards. Opacity alone is too subtle at
+ * a projector, so the fill and the text both drop as well.
+ */
+.button:disabled {
+    -fx-background-color: -db-surface-sunken;
+    -fx-text-fill: -db-text-muted;
+    -fx-border-color: -db-border;
+    -fx-opacity: 0.45;
+    -fx-cursor: default;
+    -fx-effect: null;
+}
+
+.primary-button:disabled,
+.disco-button:disabled {
+    -fx-background-color: -db-surface-sunken;
+    -fx-text-fill: -db-text-muted;
+    -fx-border-color: -db-border;
+    -fx-effect: null;
+}
+
+/* ======================================================================
+   Mode selector
+   ====================================================================== */
+
+.mode-option {
+    -fx-text-fill: -db-text-secondary;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 3 0 3 0;
+}
+
+.mode-option:selected {
+    -fx-text-fill: -db-text;
+    -fx-font-weight: bold;
+}
+
+.mode-option .radio {
+    -fx-background-color: -db-border;
+    -fx-background-radius: 20;
+    -fx-padding: 4;
+}
+
+.mode-option:selected .radio {
+    -fx-background-color: linear-gradient(to bottom, -db-magenta 0%, -db-accent 100%);
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 12, 0.45, 0, 0);
+}
+
+.mode-option:selected .dot {
+    -fx-background-color: -db-text-on-accent;
+    -fx-background-insets: 0;
+}
+
+/* ======================================================================
+   Text fields
+   ====================================================================== */
+
+.text-field {
+    -fx-background-color: -db-surface-raised;
+    -fx-text-fill: -db-text;
+    -fx-prompt-text-fill: -db-text-muted;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 7 10 7 10;
+}
+
+.text-field:focused {
+    -fx-border-color: -db-accent-hover;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 14, 0.35, 0, 0);
+}
+
+.field-error {
+    -fx-border-color: -db-danger;
+    -fx-border-width: 1.5;
+}
+
+.error-message {
+    -fx-font-size: 12px;
+    -fx-text-fill: -db-danger;
+}
+
+/* ======================================================================
+   Progress bar and slider
+   ====================================================================== */
+
+.progress-bar {
+    -fx-indeterminate-bar-animation-time: 0;
+}
+
+/*
+ * The radius is half the height, not a large "pill" number. A corner radius far bigger than
+ * the box inflates the shape JavaFX computes for the border, and on an 8px-tall track that
+ * came out over two thousand pixels wide -- a dark line straight across the window. Anything
+ * thin gets an exact radius for that reason.
+ */
+.progress-bar > .track {
+    -fx-background-color: linear-gradient(to bottom, -db-surface 0%, -db-surface-sunken 100%);
+    -fx-background-radius: 4;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 4;
+    -fx-pref-height: 8;
+}
+
+/* The elapsed part runs purple into magenta and lights the strip it has already covered. */
+.progress-bar > .bar {
+    -fx-background-color: linear-gradient(to right, -db-accent 0%, -db-magenta 70%, -db-gold 100%);
+    -fx-background-radius: 4;
+    -fx-background-insets: 0;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 14, 0.45, 0, 0);
+}
+
+.slider .track {
+    -fx-background-color: linear-gradient(to bottom, -db-surface 0%, -db-surface-sunken 100%);
+    -fx-background-radius: 3;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 3;
+    -fx-pref-height: 6;
+}
+
+/* A chrome knob: light at the top, shadowed at the bottom, lit by the accent behind it. */
+.slider .thumb {
+    -fx-background-color: linear-gradient(to bottom, -db-chrome-light 0%, -db-accent 100%);
+    -fx-background-radius: 10;
+    -fx-padding: 7;
+    -fx-effect: dropshadow(gaussian, -db-glow-accent, 12, 0.40, 0, 0);
+}
+
+.slider .thumb:hover {
+    -fx-background-color: linear-gradient(to bottom, -db-chrome-light 0%, -db-magenta 100%);
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 18, 0.60, 0, 0);
+}
+
+.slider:disabled .thumb {
+    -fx-background-color: -db-text-muted;
+    -fx-effect: null;
+}
+
+.slider .axis {
+    -fx-tick-label-fill: transparent;
+}
+
+/* ======================================================================
+   Add / edit dialog
+   ====================================================================== */
+
+/* The dialog is a lit booth, not a grey sheet dropped over the floor. */
+.dialog-root {
+    -fx-background-color:
+        linear-gradient(to bottom, -db-wash-top 0%, -db-surface 60%, -db-wash-bottom 100%),
+        radial-gradient(center 50% 0%, radius 70%, -db-halo 0%, transparent 100%);
+}
+
+.dialog-title {
+    -fx-font-family: "Futura", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -db-text;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 14, 0.30, 0, 0);
+}
+
+/* The form sits on its own panel so the fields read as a group. */
+.dialog-form {
+    -fx-background-color: linear-gradient(to bottom right, -db-surface-raised 0%, -db-surface-sunken 100%);
+    -fx-background-radius: 14;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+/* ======================================================================
+   Combo box and scroll bars
+   ====================================================================== */
+
+.combo-box {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: -db-text;
+    -fx-padding: 6 10 6 10;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: -db-surface-raised;
+    -fx-border-color: -db-border;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: -db-hover;
+}
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -db-border;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: -db-text-muted;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+/* ======================================================================
+   Filters
+   ====================================================================== */
+
+.filter-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -db-text-secondary;
+}
+
+.filter-summary {
+    -fx-font-size: 11px;
+    -fx-text-fill: -db-text-muted;
+}
+
+/* ======================================================================
+   Icon transport
+   ====================================================================== */
+
+.icon-button {
+    -fx-min-width: 44;
+    -fx-min-height: 44;
+    -fx-padding: 6 12 6 12;
+    -fx-content-display: graphic-only;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.transport-icon {
+    -fx-fill: -db-text;
+}
+
+/* The icon has to follow the button it sits on, or a filled Play button gets a dark glyph. */
+.primary-button .transport-icon {
+    -fx-fill: -db-text-on-accent;
+}
+
+.icon-button:disabled .transport-icon {
+    -fx-fill: -db-text-muted;
+}
+
+/* ======================================================================
+   Dance floor
+   ====================================================================== */
+
+/*
+ * The ball itself. It is drawn, not shipped as an image: a Circle whose fill is an off-centre
+ * radial gradient, which is what gives a flat disc the read of a sphere lit from the upper
+ * left. The rotation and the mirror facets that ride on top are built in Java -- see
+ * DiscoBall -- because neither is expressible in CSS.
+ */
+.disco-ball {
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 30, 0.55, 0, 0);
+}
+
+.disco-ball-facet {
+    -fx-stroke: -db-chrome-light;
+    -fx-stroke-width: 0.6;
+}
+
+/* The rod the ball hangs from. */
+.disco-ball-mount {
+    -fx-stroke: -db-chrome-dark;
+    -fx-stroke-width: 2;
+}
+
+/*
+ * The pulsing floor lights behind the shell. Opacity is animated in Java; the colour and the
+ * shape live here so the two themes light differently without touching the animation.
+ */
+/*
+ * A flat fill reads as a disc laid over the window, not as light falling on it. The gradient
+ * has to reach full transparency at the rim so there is no edge to see.
+ */
+.floor-light {
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, -db-halo 0%, transparent 100%);
+}
+
+.floor-light-far {
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, -db-halo-far 0%, transparent 100%);
+}
+
+/* The now-playing cover, framed like a record sleeve under the lights. */
+.cover-frame {
+    -fx-background-color: linear-gradient(to bottom right, -db-accent 0%, -db-magenta 100%);
+    -fx-background-radius: 12;
+    -fx-padding: 2;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 18, 0.40, 0, 0);
+}

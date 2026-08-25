@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.layout.VBox?>
+
+<!--
+    Application shell: the three regions every later Track B ticket fills in.
+
+      left    sidebar        mode selector (B4-03) and filters
+      center  library        search box and the song table
+      bottom  now playing    cover, metadata, progress and transport (B3, B4)
+-->
+<!--
+    The shell sits under a light layer rather than beside it. The lights have to be drawn over
+    the window because the shell paints an opaque gradient of its own, and they are
+    mouse-transparent so nothing they cover stops being clickable.
+-->
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.discoballplayer.ui.MainController">
+
+<!--
+    minHeight and minWidth are pinned to zero on purpose. As the scene root this pane was sized
+    to the window regardless of what its content asked for; inside a StackPane its own minimum
+    is honoured instead, and the sidebar's content asks for more than the window is tall. Left
+    computed, the shell grows past the window and the whole layout shifts.
+-->
+<BorderPane fx:id="rootPane" styleClass="root-pane" minWidth="0" minHeight="0">
+
+    <left>
+        <VBox fx:id="sidebar" styleClass="sidebar" spacing="24" minWidth="200" prefWidth="220">
+            <padding>
+                <Insets top="20" right="18" bottom="20" left="18"/>
+            </padding>
+
+            <!-- The ball hangs above the marquee rather than beside it: at 21px bold the
+                 title needs the sidebar's full width, and a ball on the same row truncated it
+                 to "DiscoBall...". -->
+            <VBox fx:id="brandBox" styleClass="brand-box" spacing="6" alignment="CENTER">
+                <!-- The image is set by the controller, which lifts it off its background
+                     first. An absent or unreadable file leaves this empty and nothing else
+                     changes: a logo is decoration, and decoration does not stop a window. -->
+                <ImageView fx:id="brandLogo" fitWidth="72" fitHeight="72" preserveRatio="true"/>
+                <Label text="DiscoBallPlayer" styleClass="brand-title"/>
+                <Label text="DANCE ALL NIGHT" styleClass="brand-subtitle"/>
+            </VBox>
+
+            <VBox fx:id="modeSelectorBox" styleClass="sidebar-section, glass-panel" spacing="8">
+                <Label text="PLAYBACK MODE" styleClass="section-title"/>
+
+                <fx:define>
+                    <ToggleGroup fx:id="modeGroup"/>
+                </fx:define>
+
+                <RadioButton fx:id="shuffleModeButton" text="Shuffle" toggleGroup="$modeGroup"
+                             onAction="#onShuffleMode" styleClass="mode-option"/>
+                <RadioButton fx:id="arrivalModeButton" text="Arrival order" toggleGroup="$modeGroup"
+                             onAction="#onArrivalMode" styleClass="mode-option"/>
+                <RadioButton fx:id="alphabeticalModeButton" text="Alphabetical" toggleGroup="$modeGroup"
+                             onAction="#onAlphabeticalMode" styleClass="mode-option"/>
+            </VBox>
+
+            <VBox fx:id="filterBox" styleClass="sidebar-section, glass-panel" spacing="10">
+                <Label text="FILTERS" styleClass="section-title"/>
+
+                <Label text="Genre" styleClass="filter-label"/>
+                <ComboBox fx:id="genreFilter" maxWidth="Infinity" onAction="#onFilterChanged"/>
+
+                <Label text="Artist" styleClass="filter-label"/>
+                <ComboBox fx:id="artistFilter" maxWidth="Infinity" onAction="#onFilterChanged"/>
+
+                <Label fx:id="ratingFilterLabel" text="Rating 0+" styleClass="filter-label"/>
+                <Slider fx:id="ratingFilter" min="0" max="100" value="0"
+                        majorTickUnit="10" minorTickCount="0" snapToTicks="true"
+                        blockIncrement="10"/>
+
+                <Button fx:id="clearFiltersButton" text="Clear filters" maxWidth="Infinity"
+                        onAction="#onClearFilters"/>
+                <Label fx:id="filterSummary" styleClass="filter-summary" wrapText="true"/>
+            </VBox>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox fx:id="libraryContainer" styleClass="library-region" spacing="12">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <TextField fx:id="searchField" styleClass="search-field" HBox.hgrow="ALWAYS"
+                           promptText="Search by title, artist or album"/>
+                <Button fx:id="addButton" text="Add" onAction="#onAddSong"/>
+                <Button fx:id="editButton" text="Edit" onAction="#onEditSong"/>
+                <Button fx:id="deleteButton" text="Delete" onAction="#onDeleteSong"/>
+                <ToggleButton fx:id="themeToggle" text="Light" onAction="#onToggleTheme"/>
+            </HBox>
+
+            <!--
+                The resize policy is what makes the columns share the width proportionally to
+                their prefWidth, so the table grows with the window instead of leaving a gap.
+            -->
+            <TableView fx:id="libraryTable" styleClass="library-table" VBox.vgrow="ALWAYS">
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/>
+                </columnResizePolicy>
+                <columns>
+                    <TableColumn fx:id="titleColumn" text="Title" prefWidth="230"/>
+                    <TableColumn fx:id="artistColumn" text="Artist" prefWidth="170"/>
+                    <TableColumn fx:id="albumColumn" text="Album" prefWidth="170"/>
+                    <TableColumn fx:id="durationColumn" text="Duration" prefWidth="90"/>
+                    <TableColumn fx:id="genreColumn" text="Genre" prefWidth="110"/>
+                    <TableColumn fx:id="yearColumn" text="Year" prefWidth="80"/>
+                    <TableColumn fx:id="ratingColumn" text="Rating" prefWidth="80"/>
+                </columns>
+            </TableView>
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox fx:id="nowPlayingBar" styleClass="now-playing-bar"
+              alignment="CENTER_LEFT" spacing="18" minHeight="100">
+            <padding>
+                <Insets top="16" right="20" bottom="16" left="20"/>
+            </padding>
+
+            <!-- 64x64 by contract: B3-02 swaps the image, never the box, so the bar
+                 never reflows when a cover is missing or fails to decode. -->
+            <StackPane styleClass="cover-frame">
+                <ImageView fx:id="coverImage" fitWidth="64" fitHeight="64"
+                           preserveRatio="false" smooth="true"/>
+            </StackPane>
+
+            <VBox alignment="CENTER_LEFT" spacing="4" minWidth="200" prefWidth="240">
+                <Label fx:id="nowPlayingTitle" styleClass="now-playing-title" text="Nothing playing"/>
+                <Label fx:id="nowPlayingArtist" styleClass="now-playing-artist" text="Pick a song to begin"/>
+            </VBox>
+
+            <!-- Never shrinks: a long status message must not squeeze the transport into
+                 "Previ..." and "N...". -->
+            <HBox alignment="CENTER" spacing="8" styleClass="transport" minWidth="-Infinity">
+                <!-- Icons are inline SVG paths: no image assets to ship, and they take
+                     their colour from the stylesheet like any other shape. The text is kept
+                     as the accessible name and the tooltip, not as a visible label. -->
+                <Button fx:id="previousButton" text="Previous" onAction="#onPrevious"
+                        styleClass="transport-button, icon-button">
+                    <graphic>
+                        <SVGPath fx:id="previousIcon" styleClass="transport-icon"
+                                 content="M 16,4 L 16,16 L 6,10 Z M 5,4 L 3,4 L 3,16 L 5,16 Z"/>
+                    </graphic>
+                    <tooltip><Tooltip text="Previous"/></tooltip>
+                </Button>
+
+                <Button fx:id="playPauseButton" onAction="#onPlayPause"
+                        styleClass="transport-button, icon-button, primary-button">
+                    <graphic>
+                        <SVGPath fx:id="playPauseIcon" styleClass="transport-icon"/>
+                    </graphic>
+                    <tooltip><Tooltip text="Play or pause"/></tooltip>
+                </Button>
+
+                <Button fx:id="nextButton" text="Next" onAction="#onNext"
+                        styleClass="transport-button, icon-button">
+                    <graphic>
+                        <SVGPath fx:id="nextIcon" styleClass="transport-icon"
+                                 content="M 4,4 L 4,16 L 14,10 Z M 15,4 L 17,4 L 17,16 L 15,16 Z"/>
+                    </graphic>
+                    <tooltip><Tooltip text="Next"/></tooltip>
+                </Button>
+            </HBox>
+
+            <VBox HBox.hgrow="ALWAYS" alignment="CENTER" spacing="6">
+                <ProgressBar fx:id="progressBar" progress="0" maxWidth="Infinity"/>
+                <HBox spacing="8">
+                    <Label fx:id="elapsedLabel" styleClass="time-label" text="0:00"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="totalLabel" styleClass="time-label" text="0:00"/>
+                </HBox>
+            </VBox>
+
+            <VBox alignment="CENTER_LEFT" spacing="4" minWidth="120">
+                <Label fx:id="volumeLabel" text="Volume 100%" styleClass="time-label"/>
+                <Slider fx:id="volumeSlider" min="0" max="100" value="100"
+                        blockIncrement="5" prefWidth="120"/>
+            </VBox>
+
+            <VBox alignment="CENTER_LEFT" spacing="4" minWidth="150">
+                <Label fx:id="ratingValueLabel" text="Rating 0" styleClass="time-label"/>
+                <Slider fx:id="ratingSlider" min="0" max="100" value="0"
+                        majorTickUnit="5" minorTickCount="0" snapToTicks="true"
+                        blockIncrement="5" prefWidth="150" disable="true"/>
+            </VBox>
+
+            <Label fx:id="statusLabel" styleClass="status-label" wrapText="true"
+                   minWidth="140" maxWidth="180" alignment="CENTER_RIGHT"
+                   textAlignment="RIGHT"/>
+
+            <!-- The ball hangs here rather than in the sidebar. The logo is a mirror ball too,
+                 so the drawn one belongs well away from it, and the sidebar has no height to
+                 spare once the filters are in, least of all at the window's minimum size. This
+                 bar is a fixed height that always exists. Filled by the controller: the ball is
+                 drawn, so FXML has nothing to say about it beyond where it hangs. -->
+            <StackPane fx:id="discoBallSlot"
+                       minWidth="52" prefWidth="52" maxWidth="52"
+                       minHeight="52" prefHeight="52" maxHeight="52"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
+
+    <Pane fx:id="floorLights" mouseTransparent="true" pickOnBounds="false">
+        <Circle fx:id="lightOne" styleClass="floor-light" radius="200"/>
+        <Circle fx:id="lightTwo" styleClass="floor-light-far" radius="150"/>
+    </Pane>
+
+</StackPane>
