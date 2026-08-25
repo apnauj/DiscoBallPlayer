@@ -827,9 +827,12 @@ Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these 
     back empty, so the defense never opens on a blank window.
   - **Verification:** `mvn javafx:run` with no `library.json` shows 20 songs.
 
-- [ ] **[C-04] Full-suite green run**
+- [x] **[C-04] Full-suite green run**
   - **Files:** none (fix-forward only)
   - **Objective:** `mvn clean test` with every suite passing and no skipped tests.
+  - **Result:** 341 tests, `Failures: 0, Errors: 0, Skipped: 0`, on merged `develop` at
+    `9350e57`. Run three times consecutively rather than once: the suite has produced a lucky
+    green before, and a gate that only has to pass once is not a gate.
   - **Verification:** `mvn clean test` — `Failures: 0, Errors: 0, Skipped: 0`.
 
 - [x] **[C-05] Align `README.md` with the locked names**
@@ -1057,7 +1060,9 @@ Append here when you need something from a file the other track owns. Format:
   catalogue nobody injected". `C-02` is unblocked — compose through
   `FXMLLoader.setControllerFactory`.
 
-- [ ] (from Track B to Track A) `A1-10` is still open on `DoublyCircularLinkedList`.
+- [x] (from Track B to Track A) `A1-10` is still open on `DoublyCircularLinkedList`.
+  **Answered by Track A.** The file now carries `Time complexity` on twelve members, covering
+  its public surface and the `Cursor`. Closed at v1.
   `BST` and `SimpleQueue` carry `Time complexity` on every public method; the list carries it
   on none of its eleven — the four matches in that file are all inside `Cursor`. `CLAUDE.md`
   calls these comments the oral-defense script and structures are 35% of the grade, so of
