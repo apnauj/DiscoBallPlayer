@@ -1,8 +1,5 @@
 package com.discoballplayer.ui;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.Objects;
 
 import com.discoballplayer.service.DemoPlayerService;
 
@@ -47,18 +44,9 @@ class TransportControlsTest extends JavaFxTestBase {
 
     @BeforeEach
     void loadTheView() {
-        onFxThread(() -> {
-            URL view = Objects.requireNonNull(
-                    MainController.class.getResource("/com/discoballplayer/fxml/main-view.fxml"),
-                    "main-view.fxml is not on the test classpath");
-            FXMLLoader loader = new FXMLLoader(view);
-            try {
-                root = loader.load();
-            } catch (IOException e) {
-                throw new IllegalStateException("main-view.fxml failed to load", e);
-            }
-            controller = loader.getController();
-        });
+        FXMLLoader loader = loadView("/com/discoballplayer/fxml/main-view.fxml");
+        root = loader.getRoot();
+        controller = loader.getController();
     }
 
     @AfterEach

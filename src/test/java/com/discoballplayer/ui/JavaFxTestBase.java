@@ -1,10 +1,14 @@
 package com.discoballplayer.ui;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javafx.application.Platform;
+import javafx.fxml.FXMLLoader;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -38,6 +42,34 @@ abstract class JavaFxTestBase {
         await(ready, "JavaFX toolkit startup");
         Platform.setImplicitExit(false);
         started = true;
+    }
+
+    /**
+     * Loads an FXML view on the FX thread and drains the pulse that follows.
+     *
+     * <p>The flush is the point. A controller's {@code initialize} runs inside {@code load()},
+     * and every {@code PlaybackListener} callback it triggers is required to defer its body
+     * with {@code Platform.runLater} — so the widgets those callbacks write are still one
+     * pulse behind when {@code load()} returns. A test that read them straight away raced the
+     * FX thread and passed or failed depending on who got there first.</p>
+     *
+     * @param resourcePath classpath location of the FXML document
+     * @return the loader, so the caller can take both the root and the controller from it
+     */
+    static FXMLLoader loadView(String resourcePath) {
+        URL view = Objects.requireNonNull(
+                JavaFxTestBase.class.getResource(resourcePath),
+                resourcePath + " is not on the test classpath");
+        FXMLLoader loader = new FXMLLoader(view);
+        onFxThread(() -> {
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new IllegalStateException(resourcePath + " failed to load", e);
+            }
+        });
+        flushFxThread();
+        return loader;
     }
 
     /**
