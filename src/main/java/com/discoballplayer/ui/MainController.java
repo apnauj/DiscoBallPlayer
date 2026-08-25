@@ -44,6 +44,10 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.input.KeyCode;
@@ -142,6 +146,10 @@ public class MainController implements PlaybackListener {
 
     /** Corner diameter of the now-playing cover: rounded enough to read, not a circle. */
     private static final double COVER_CORNER = 14;
+
+    /** The ball and the box it hangs in. Fixed, so the mount rod and the glow cost no layout. */
+    private static final double BALL_RADIUS = 20;
+    private static final double BALL_SLOT = 64;
 
     private Song displayedSong;
 
@@ -256,6 +264,20 @@ public class MainController implements PlaybackListener {
     @FXML
     private SVGPath playPauseIcon;
 
+    @FXML
+    private StackPane discoBallSlot;
+
+    @FXML
+    private Pane floorLights;
+
+    @FXML
+    private Circle lightOne;
+
+    @FXML
+    private Circle lightTwo;
+
+    private final AnimationManager animations = new AnimationManager();
+
     /**
      * Rounds the corners of the now-playing cover.
      *
@@ -275,12 +297,91 @@ public class MainController implements PlaybackListener {
     }
 
     /**
+     * Hangs the ball, places the lights, and starts everything moving.
+     *
+     * <p>The animations wait for a {@code Scene}. An endless timeline on a tree that was never
+     * shown costs a slice of every pulse for the life of the process and shows nobody anything,
+     * and a view is built in tests far more often than it is displayed.</p>
+     */
+    private void buildTheFloor() {
+        DiscoBall ball = new DiscoBall(BALL_RADIUS);
+        // Unmanaged, and the slot has a fixed size. A Group is sized by its contents, and this
+        // one's contents include a glow and a mount rod that sticks out above it -- so with the
+        // ball laid out normally the sidebar's minimum height depended on a decoration, and it
+        // settled only on the second CSS pass. The window grew eleven pixels on every theme
+        // toggle. Nothing decorative is allowed to drive layout.
+        ball.setManaged(false);
+        ball.setTranslateX(BALL_SLOT / 2);
+        ball.setTranslateY(BALL_SLOT - BALL_RADIUS - 2);
+        discoBallSlot.getChildren().add(ball);
+
+        // The lights follow the window rather than sitting at fixed pixels, so a resized window
+        // is still lit in the corners the design puts them in.
+        lightOne.centerXProperty().bind(floorLights.widthProperty().multiply(0.18));
+        lightOne.centerYProperty().bind(floorLights.heightProperty().multiply(0.12));
+        lightTwo.centerXProperty().bind(floorLights.widthProperty().multiply(0.86));
+        lightTwo.centerYProperty().bind(floorLights.heightProperty().multiply(0.30));
+
+        // A light near an edge is wider than the room it lights. Without a clip the layer
+        // paints past the window, which a live stage hides and a snapshot does not.
+        Rectangle room = new Rectangle();
+        room.widthProperty().bind(floorLights.widthProperty());
+        room.heightProperty().bind(floorLights.heightProperty());
+        floorLights.setClip(room);
+
+        rootPane.sceneProperty().addListener((observable, gone, arrived) -> {
+            if (arrived == null) {
+                animations.stopAll();
+            } else {
+                startTheFloor(ball);
+            }
+        });
+    }
+
+    private void startTheFloor(DiscoBall ball) {
+        animations.stopAll();
+        animations.spin(ball.spinningPart(), 9);
+
+        // Out of phase on purpose: two lights swelling in step read as one flashing panel
+        // rather than as a room with lights in it.
+        animations.pulse(lightOne, 0.35, 1.0, 3.5, 0);
+        animations.pulse(lightTwo, 0.25, 0.9, 4.7, 1.2);
+
+        // Both targets are nodes no stylesheet rule gives an -fx-effect. A rule owns that
+        // property on anything it matches, so a glow set from Java on a styled node survives
+        // exactly until the first hover.
+        animations.breathingGlow(playPauseIcon, Color.web("#ffd166"), 14, 0.15, 0.85, 1.4);
+        animations.breathingGlow(nowPlayingTitle, Color.web("#e040fb"), 12, 0.05, 0.55, 2.2);
+
+        liftOnHover();
+    }
+
+    /** Buttons grow a little under the pointer; the stylesheet brightens them at the same time. */
+    private void liftOnHover() {
+        animations.hoverLift(playPauseButton, 1.12);
+        animations.hoverLift(previousButton, 1.08);
+        animations.hoverLift(nextButton, 1.08);
+        animations.hoverLift(addButton, 1.05);
+    }
+
+    /** Visible for tests: stops the endless animations without tearing the view down. */
+    void stopAnimations() {
+        animations.stopAll();
+    }
+
+    /** Visible for tests. */
+    AnimationManager animations() {
+        return animations;
+    }
+
+    /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
     @FXML
     private void initialize() {
         defaultCover = loadDefaultCover();
         roundTheCover();
+        buildTheFloor();
         configureColumns();
         searchField.textProperty().addListener((observable, previous, query) -> showMatches(query));
         player.addListener(this);
@@ -569,6 +670,9 @@ public class MainController implements PlaybackListener {
      */
     private void selectMode(PlaybackMode mode) {
         player.setMode(mode);
+        // The closest thing this window has to changing view: the table now answers to a
+        // different structure, so it arrives rather than simply being different.
+        animations.enter(libraryTable, 14, 0.28);
         clearNowPlaying();
         statusLabel.setText("");
         try {

@@ -655,12 +655,16 @@
  * The pulsing floor lights behind the shell. Opacity is animated in Java; the colour and the
  * shape live here so the two themes light differently without touching the animation.
  */
+/*
+ * A flat fill reads as a disc laid over the window, not as light falling on it. The gradient
+ * has to reach full transparency at the rim so there is no edge to see.
+ */
 .floor-light {
-    -fx-fill: -db-halo;
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, -db-halo 0%, transparent 100%);
 }
 
 .floor-light-far {
-    -fx-fill: -db-halo-far;
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, -db-halo-far 0%, transparent 100%);
 }
 
 /* The now-playing cover, framed like a record sleeve under the lights. */

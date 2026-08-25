@@ -739,7 +739,24 @@ or `fx:id` is renamed.
     boolean, so it cannot drift. It also needs `TableView.refresh()` when the song changes,
     because the row's item did not change -- only the song it is compared against.
   - **Verification:** `mvn test -Dtest=DiscoThemeTest#theMarkMovesWithTheSong`
-- [ ] **[B11-03] Animations**
+- [x] **[B11-03] Animations**
+  - **Files:** `ui/AnimationManager.java`, `ui/DiscoBall.java`, `ui/MainController.java`, `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/css/app.css`
+  - **Objective:** A mirror ball turning, two floor lights pulsing out of phase, a glow breathing
+    on the transport and on the now-playing title, buttons that lift under the pointer, and the
+    table arriving when a mode is chosen. One switch turns all of it off:
+    `AnimationManager.setEnabled(false)`.
+  - **Note:** new UI classes go in `com.discoballplayer.ui`. `module-info.java` was frozen in
+    F0-09 and opens only that package, so a `ui.components` subpackage could not be reflected
+    into by FXML.
+  - **Found on the way:** three faults, none of which any existing test could see.
+    A drop shadow's bounds come from its radius and a node's bounds feed the layout around it,
+    so breathing the radius on the transport glyph pushed the table 22px on every breath --
+    the animation now breathes spread, which changes nothing's size. The mirror ball is a Group
+    sized by its contents, including a glow and a mount rod, so laid out normally the sidebar's
+    minimum depended on a decoration; it is unmanaged now. And wrapping the shell in a StackPane
+    exposed the shell's own minimum, which as scene root had always been ignored -- pinned to
+    zero, which is what the Scene did for it before.
+  - **Verification:** `mvn test -Dtest=AnimationsTest`
 - [ ] **[B11-04] Logo integration**
 
 ---
