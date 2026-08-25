@@ -710,6 +710,25 @@ three in `#35`; these are the two that stayed invisible until the UI caught up.
 
 ---
 
+### B10 — Fixes from the suite itself
+
+- [x] **[B10-01] The UI tests stop racing the FX thread**
+  - **Files:** `src/test/java/com/discoballplayer/ui/JavaFxTestBase.java` and the five test
+    classes that load `main-view.fxml`
+  - **Objective:** `B9-05` was the first test to assert on a widget written by a
+    `PlaybackListener` callback, and it exposed a fault the suite had carried since `B1`: a
+    controller's `initialize` runs inside `load()`, every callback body is required to defer
+    itself with `Platform.runLater`, and the `@BeforeEach` read those widgets before that pulse
+    ran. The result passed or failed depending on which thread won — roughly one run in five.
+    Loading now goes through one `loadView` helper that drains the pulse, so the five classes
+    cannot drift back into the race one copy at a time.
+  - **Note:** a race cannot be pinned by a single run in either direction. The evidence is the
+    rate: before, 5 failures in 8 runs of the class; after, 6 clean class runs and 8 clean runs
+    of the full 322-test suite.
+  - **Verification:** `mvn test -Dtest=FiltersAndVolumeTest#theIconFollowsTheServiceRatherThanTheClick`
+
+---
+
 ## 6. Phase C — Integration and defense material (both tracks, sequential)
 
 Starts only when Track A reaches `A5-04` and Track B reaches `B5-05`. Run these in order.
