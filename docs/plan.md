@@ -710,6 +710,30 @@ three in `#35`; these are the two that stayed invisible until the UI caught up.
 
 ---
 
+### B11 — Disco retro visual layer (70s/80s, purple)
+
+Visual only. No business logic, model or structure is touched, and no existing class, method
+or `fx:id` is renamed.
+
+- [x] **[B11-01] Palette and base components**
+  - **Files:** `resources/com/discoballplayer/css/app.css`, `resources/com/discoballplayer/css/dark.css`
+  - **Objective:** The specified dance-floor palette as tokens. It goes in `dark.css` because
+    that is the sheet the window opens wearing; `app.css` keeps the lights-up variant of the
+    same hues. Surfaces are gradients rather than flat colour, corners are round, and depth
+    comes from coloured glows instead of grey shadows. Every glow names a token, so the two
+    themes light differently without a rule being restated.
+  - **Found on the way:** a "pill" radius of 999 on a six-pixel slider track does not clamp --
+    JavaFX computes a border shape from it, and the track came out over 2000px wide, painting a
+    dark line across the window. Thin elements now get an exact radius, and a test measures
+    painted extent against layout box so it cannot come back.
+  - **Verification:** `mvn test -Dtest=DiscoThemeTest`
+
+- [ ] **[B11-02] The theme applied across the screens**
+- [ ] **[B11-03] Animations**
+- [ ] **[B11-04] Logo integration**
+
+---
+
 ### B10 — Fixes from the suite itself
 
 - [x] **[B10-01] The UI tests stop racing the FX thread**

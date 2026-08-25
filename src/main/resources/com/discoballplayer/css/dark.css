@@ -1,5 +1,5 @@
 /*
- * Dark theme.
+ * Dance floor -- the theme the window opens wearing.
  *
  * Token overrides and nothing else. Every rule in app.css references these by name, and the
  * Modena bindings there (-fx-base, -fx-accent and friends) point at them rather than at
@@ -8,27 +8,51 @@
  * runtime therefore cannot cause a relayout.
  *
  * If a rule ever has to be repeated here, the token it needs is missing from app.css.
+ *
+ * Four values are derived rather than given: -db-border, -db-text-muted, -db-accent-press and
+ * -db-danger. The brief specified a floor, not a full interface, and a border needs to sit
+ * between panel and vibrant purple, a pressed state needs to be darker than the primary, a
+ * muted text needs to fall below the secondary, and danger has to stop reading as decoration.
  */
 
 .root {
 
     /* ---- surfaces ---- */
-    -db-surface: #131120;
-    -db-surface-raised: #1c1930;
-    -db-surface-sunken: #262140;
-    -db-border: #332c56;
+    -db-surface: #12071f;
+    -db-surface-raised: #1e0b33;
+    -db-surface-sunken: #2d1b4e;
+    -db-border: #3a2260;
 
     /* ---- text ---- */
-    -db-text: #f5f0ff;
-    -db-text-secondary: #b4abd4;
-    -db-text-muted: #7d75a0;
-    -db-text-on-accent: #ffffff;
+    -db-text: #f3e8ff;
+    -db-text-secondary: #b79cd9;
+    -db-text-muted: #8875a8;
+    -db-text-on-accent: #f3e8ff;
 
     /* ---- accent and state ---- */
-    -db-accent: #8f6bff;
-    -db-accent-hover: #a184ff;
-    -db-accent-press: #7a56e8;
-    -db-selection: #362a66;
-    -db-hover: #272148;
-    -db-danger: #e0708c;
+    -db-accent: #7b2ff7;
+    -db-accent-hover: #9d4edd;
+    -db-accent-press: #5f1fc4;
+    -db-selection: #3b1f66;
+    -db-hover: #26123f;
+    -db-danger: #ff4d6d;
+
+    /* ---- disco accents ---- */
+    -db-magenta: #e040fb;
+    -db-gold: #ffd166;
+    -db-cyan: #4cc9f0;
+
+    /* ---- glows: neon reads on a dark floor, so these carry far more alpha than in daylight ---- */
+    -db-glow-accent: rgba(123, 47, 247, 0.75);
+    -db-glow-magenta: rgba(224, 64, 251, 0.70);
+    -db-glow-gold: rgba(255, 209, 102, 0.65);
+    -db-glow-cyan: rgba(76, 201, 240, 0.55);
+
+    /* ---- gradient stops ---- */
+    -db-wash-top: #2a1046;
+    -db-wash-bottom: #14081f;
+    -db-halo: rgba(123, 47, 247, 0.38);
+    -db-halo-far: rgba(224, 64, 251, 0.16);
+    -db-chrome-light: #d7c4f5;
+    -db-chrome-dark: #3a2260;
 }
