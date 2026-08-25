@@ -16,6 +16,8 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.TableRow;
+import javafx.scene.image.ImageView;
+import javafx.scene.shape.Rectangle;
 
 import com.discoballplayer.model.Song;
 
@@ -159,6 +161,30 @@ class DiscoThemeTest extends JavaFxTestBase {
         assertTrue(rule.contains("linear-gradient"), ".root-pane has no linear gradient");
         assertEquals(2, rule.split("radial-gradient", -1).length - 1,
                 ".root-pane should carry both light washes");
+    }
+
+    // ---- the cover -------------------------------------------------------
+
+    /**
+     * The corners have to be clipped rather than styled. A stylesheet radius rounds the box a
+     * control paints, and an ImageView paints pixels rather than a box: the artwork would keep
+     * its square corners over any radius the frame behind it carries. Asserting on the clip is
+     * asserting on the only thing that reaches the image.
+     */
+    @Test
+    void theCoverHasRoundedCorners() {
+        ImageView cover = onFxThreadGet(() -> (ImageView) root.lookup("#coverImage"));
+
+        Node clip = onFxThreadGet(cover::getClip);
+        assertTrue(clip instanceof Rectangle, "the cover is not clipped, so it stays square");
+
+        Rectangle rounded = (Rectangle) clip;
+        assertTrue(rounded.getArcWidth() > 0 && rounded.getArcHeight() > 0,
+                "the clip has square corners, which rounds nothing");
+        assertEquals(cover.getFitWidth(), rounded.getWidth(),
+                "the clip has to match the view, or it crops the artwork");
+        assertEquals(cover.getFitHeight(), rounded.getHeight(),
+                "the clip has to match the view, or it crops the artwork");
     }
 
     // ---- the row that is playing ----------------------------------------

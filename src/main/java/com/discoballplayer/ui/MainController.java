@@ -44,6 +44,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -138,6 +139,9 @@ public class MainController implements PlaybackListener {
      * twice. JavaFX tracks a pseudo-class as a boolean, so it cannot drift out of step.
      */
     private static final PseudoClass PLAYING = PseudoClass.getPseudoClass("playing");
+
+    /** Corner diameter of the now-playing cover: rounded enough to read, not a circle. */
+    private static final double COVER_CORNER = 14;
 
     private Song displayedSong;
 
@@ -253,11 +257,30 @@ public class MainController implements PlaybackListener {
     private SVGPath playPauseIcon;
 
     /**
+     * Rounds the corners of the now-playing cover.
+     *
+     * <p>A clip, not a stylesheet rule: {@code -fx-background-radius} rounds the box a control
+     * paints, and an {@code ImageView} does not paint a box -- it paints pixels, which would
+     * keep their square corners over any radius the frame behind them has. Clipping is the only
+     * thing that reaches the image itself.</p>
+     *
+     * <p>The clip is sized from the view's own fit dimensions rather than from constants, so
+     * the 64x64 contract stays stated in one place: the FXML.</p>
+     */
+    private void roundTheCover() {
+        Rectangle rounded = new Rectangle(coverImage.getFitWidth(), coverImage.getFitHeight());
+        rounded.setArcWidth(COVER_CORNER);
+        rounded.setArcHeight(COVER_CORNER);
+        coverImage.setClip(rounded);
+    }
+
+    /**
      * Called by {@link javafx.fxml.FXMLLoader} once the widget tree is built.
      */
     @FXML
     private void initialize() {
         defaultCover = loadDefaultCover();
+        roundTheCover();
         configureColumns();
         searchField.textProperty().addListener((observable, previous, query) -> showMatches(query));
         player.addListener(this);
