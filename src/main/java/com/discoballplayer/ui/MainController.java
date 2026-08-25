@@ -21,6 +21,7 @@ import com.discoballplayer.service.PlayerService;
 import com.discoballplayer.util.TimeFormatter;
 
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -131,6 +132,13 @@ public class MainController implements PlaybackListener {
      * this song's title, so it has to rate the song the user is looking at even if the service
      * has since moved on.</p>
      */
+    /**
+     * Marks the row whose song is on the bar. A pseudo-class rather than a style class: a class
+     * has to be added and removed by hand, and a row that is recycled twice ends up carrying it
+     * twice. JavaFX tracks a pseudo-class as a boolean, so it cannot drift out of step.
+     */
+    private static final PseudoClass PLAYING = PseudoClass.getPseudoClass("playing");
+
     private Song displayedSong;
 
     @FXML
@@ -288,7 +296,15 @@ public class MainController implements PlaybackListener {
      */
     private void configureClickToPlay() {
         libraryTable.setRowFactory(table -> {
-            TableRow<Song> row = new TableRow<>();
+            TableRow<Song> row = new TableRow<>() {
+                @Override
+                protected void updateItem(Song song, boolean empty) {
+                    super.updateItem(song, empty);
+                    pseudoClassStateChanged(PLAYING,
+                            !empty && song != null && song.equals(displayedSong));
+                }
+            };
+            row.getStyleClass().add("track-row");
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
                     playFromLibrary(row.getItem());
@@ -637,7 +653,13 @@ public class MainController implements PlaybackListener {
      * Points the slider at the current song without treating the move as a user rating.
      */
     private void syncRating(Song song) {
+        boolean moved = !Objects.equals(displayedSong, song);
         displayedSong = song;
+        if (moved) {
+            // Rows decide their own "playing" state in updateItem, and nothing re-runs it on
+            // its own: the row's item did not change, only the song it is compared against.
+            libraryTable.refresh();
+        }
         syncingRating = true;
         try {
             ratingSlider.setDisable(song == null);

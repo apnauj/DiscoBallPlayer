@@ -728,7 +728,17 @@ or `fx:id` is renamed.
     painted extent against layout box so it cannot come back.
   - **Verification:** `mvn test -Dtest=DiscoThemeTest`
 
-- [ ] **[B11-02] The theme applied across the screens**
+- [x] **[B11-02] The theme applied across the screens**
+  - **Files:** `resources/com/discoballplayer/fxml/main-view.fxml`, `resources/com/discoballplayer/fxml/song-dialog.fxml`, `resources/com/discoballplayer/css/app.css`, `ui/MainController.java`
+  - **Objective:** Smoked-glass panels in the sidebar, a lit frame around the cover, a marquee
+    brand block, and the add/edit dialog dressed as a lit booth rather than a grey sheet. The
+    row that is playing is marked in amber, which is the one colour in the window that carries
+    meaning rather than mood.
+  - **Note:** the mark is a pseudo-class, not a style class. A class has to be added and removed
+    by hand and a recycled row ends up carrying it twice; JavaFX tracks a pseudo-class as a
+    boolean, so it cannot drift. It also needs `TableView.refresh()` when the song changes,
+    because the row's item did not change -- only the song it is compared against.
+  - **Verification:** `mvn test -Dtest=DiscoThemeTest#theMarkMovesWithTheSong`
 - [ ] **[B11-03] Animations**
 - [ ] **[B11-04] Logo integration**
 

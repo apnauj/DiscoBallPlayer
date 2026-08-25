@@ -266,11 +266,19 @@
 
 /*
  * The row that is actually playing. Amber is reserved for this one meaning across the whole
- * window, so a glance at the table answers "which one is it" without reading a word.
+ * window, so a glance at the table answers "which one is it" without reading a word. The
+ * left-edge strip is amber too, and it survives selection because this rule comes after it.
  */
-.track-row-playing .table-cell {
+.library-table .track-row:playing .table-cell {
     -fx-text-fill: -db-gold;
     -fx-font-weight: bold;
+}
+
+.library-table .track-row:playing {
+    -fx-background-color:
+        linear-gradient(to bottom, -db-gold 0%, -db-magenta 100%),
+        linear-gradient(to right, -db-selection 0%, -db-surface-sunken 100%);
+    -fx-background-insets: 0, 0 0 0 3;
 }
 
 .library-table .table-cell {
@@ -503,14 +511,29 @@
    Add / edit dialog
    ====================================================================== */
 
+/* The dialog is a lit booth, not a grey sheet dropped over the floor. */
 .dialog-root {
-    -fx-background-color: -db-surface;
+    -fx-background-color:
+        linear-gradient(to bottom, -db-wash-top 0%, -db-surface 60%, -db-wash-bottom 100%),
+        radial-gradient(center 50% 0%, radius 70%, -db-halo 0%, transparent 100%);
 }
 
 .dialog-title {
+    -fx-font-family: "Futura", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: -db-text;
+    -fx-effect: dropshadow(gaussian, -db-glow-magenta, 14, 0.30, 0, 0);
+}
+
+/* The form sits on its own panel so the fields read as a group. */
+.dialog-form {
+    -fx-background-color: linear-gradient(to bottom right, -db-surface-raised 0%, -db-surface-sunken 100%);
+    -fx-background-radius: 14;
+    -fx-border-color: -db-border;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+    -fx-padding: 16;
 }
 
 /* ======================================================================

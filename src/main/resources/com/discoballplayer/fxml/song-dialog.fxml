@@ -27,7 +27,7 @@
 
     <Label fx:id="dialogTitle" text="Add song" styleClass="dialog-title"/>
 
-    <GridPane fx:id="formGrid" hgap="12" vgap="10">
+    <GridPane fx:id="formGrid" styleClass="dialog-form" hgap="12" vgap="10">
         <columnConstraints>
             <ColumnConstraints minWidth="96" prefWidth="110"/>
             <ColumnConstraints hgrow="ALWAYS"/>

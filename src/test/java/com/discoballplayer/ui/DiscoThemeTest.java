@@ -15,6 +15,9 @@ import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.TableRow;
+
+import com.discoballplayer.model.Song;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +45,7 @@ class DiscoThemeTest extends JavaFxTestBase {
     private static final double GLOW_ALLOWANCE = 80;
 
     private Parent root;
+    private MainController controller;
 
     @BeforeAll
     static void startJavaFx() {
@@ -52,6 +56,7 @@ class DiscoThemeTest extends JavaFxTestBase {
     void loadTheView() {
         FXMLLoader loader = loadView("/com/discoballplayer/fxml/main-view.fxml");
         root = loader.getRoot();
+        controller = loader.getController();
         onFxThread(() -> {
             Scene scene = new Scene(root, 1180, 720);
             scene.getStylesheets().add(resource(APP_CSS));
@@ -154,6 +159,59 @@ class DiscoThemeTest extends JavaFxTestBase {
         assertTrue(rule.contains("linear-gradient"), ".root-pane has no linear gradient");
         assertEquals(2, rule.split("radial-gradient", -1).length - 1,
                 ".root-pane should carry both light washes");
+    }
+
+    // ---- the row that is playing ----------------------------------------
+
+    /**
+     * The amber row is the one piece of the theme that carries meaning rather than mood: amber
+     * means "this is the one playing" everywhere in the window, so a glance at the table
+     * answers the question without reading a word.
+     */
+    @Test
+    void theRowThatIsPlayingIsMarked() {
+        MainController controller = this.controller;
+        Song playing = onFxThreadGet(() -> controller.player().current());
+        assertTrue(playing != null, "the view is expected to open playing");
+
+        List<TableRow<Song>> marked = markedRows();
+        assertEquals(1, marked.size(), "exactly one row should be marked as playing");
+        assertEquals(playing, marked.get(0).getItem());
+    }
+
+    /** The mark follows playback rather than the click, exactly as the transport icon does. */
+    @Test
+    void theMarkMovesWithTheSong() {
+        Song first = onFxThreadGet(() -> controller.player().current());
+
+        onFxThread(() -> controller.player().next());
+        flushFxThread();
+
+        List<TableRow<Song>> marked = markedRows();
+        assertEquals(1, marked.size(), "exactly one row should be marked after moving on");
+        assertTrue(!marked.get(0).getItem().equals(first),
+                "the mark stayed on the song that stopped playing");
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<TableRow<Song>> markedRows() {
+        List<TableRow<Song>> marked = new ArrayList<>();
+        // TableView.refresh() re-runs updateItem on the next layout pass. A live window gets
+        // one from the pulse; a scene built by hand in a test has to be told.
+        onFxThread(() -> { root.applyCss(); root.layout(); });
+        onFxThread(() -> root.lookupAll(".track-row").stream()
+                .filter(node -> node instanceof TableRow<?>)
+                .map(node -> (TableRow<Song>) node)
+                .filter(row -> row.getPseudoClassStates().stream()
+                        .anyMatch(state -> "playing".equals(state.getPseudoClassName())))
+                .forEach(marked::add));
+        return marked;
+    }
+
+    private static <T> T onFxThreadGet(java.util.function.Supplier<T> supplier) {
+        List<T> box = new ArrayList<>(1);
+        onFxThread(() -> box.add(supplier.get()));
+        return box.get(0);
     }
 
     private static String resource(String path) {
